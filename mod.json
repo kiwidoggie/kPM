@@ -1,0 +1,11 @@
+{
+    "Name": "kPM",
+    "Description": "Competitive mod",
+    "Authors": [ "kiwidog" ],
+    "Version": "1.0.0",
+    "HasVeniceEXT": true,
+    "Tags": [ "promod", "comp", "competitive" ],
+    "Dependencies": {
+        "veniceext": "^1.0.0"
+    }
+}

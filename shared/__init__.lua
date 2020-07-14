@@ -1,0 +1,6 @@
+print("shared initialization")
+
+kPMShared =
+{
+    
+}
