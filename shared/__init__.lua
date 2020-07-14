@@ -1,6 +1,0 @@
-print("shared initialization")
-
-kPMShared =
-{
-    
-}
