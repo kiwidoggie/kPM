@@ -53,16 +53,39 @@ end
 function kPMServer:OnPlayerRequestJoin(p_Hook, p_JoinMode, p_AccountGuid, p_PlayerGuid, p_PlayerName)
     -- TODO: Reject players if a match has started
 
-    return true
+    -- Ensure that spectators can join the server at will
+    if p_JoinMode ~= "player" then
+        p_Hook:Return(true)
+        return
+    end
+
+    -- Handle player joining
+
+    -- If we are in the warmup gamestate or the endgame gamestate then allow players that aren't on the whitelist to join
+    if self.m_GameState == GameStates.Warmup or self.m_GameState == GameStates.EndGame or self.m_GameState == GameStates.None then
+        p_Hook:Return(true)
+        return
+    end
+
+    -- Handle players that are already in a match
+
+    print("joinMode: " .. p_JoinMode)
+    print("playerName: " .. p_PlayerName)
+
+    --if p_PlayerName ~= "NoFaTe" then
+    --    p_Hook:Return(false)
+    --end
+
+    p_Hook:Return(true)
 end
 
 function kPMServer:OnPlayerJoining(p_Name, p_Guid, p_IpAddress, p_AccountGuid)
     -- Here we can send the event to whichever state we are running in
-    print("info: player " .. p_Name .. " (" .. p_Guid .. ") is attempting to join the server")
+    print("info: player " .. p_Name .. " is joining the server")
 end
 
 function kPMServer:OnPlayerLeft(p_Player)
-    print("info: player " .. p_Name .. " has left the server")
+    print("info: player " .. p_Player.name .. " has left the server")
 end
 
 function kPMServer:OnPlayerFindBestSquad(p_Hook, p_Player)
@@ -81,6 +104,12 @@ function kPMServer:OnSoldierDamage(p_Hook, p_Soldier, p_Info, p_GiverInfo)
 
     if p_Info == nil then
         return
+    end
+
+    -- If we are in warmup, then disable damage of all kind
+    if self.m_GameState == GameStates.None or self.m_GameState == GameStates.Warmup then
+        p_Info.damage = 0.0
+        p_Hook:Pass(p_Soldier, p_Info, p_GiverInfo)
     end
 end
 
@@ -108,6 +137,19 @@ function kPMServer:OnToggleRup(p_Player)
 
     -- Update the match information
     self.m_Match:OnPlayerRup(p_Player)
+end
+
+-- Helper functions
+function kPMServer:ChangeGameState(p_GameState)
+    if p_GameState <= GameStates.None or p_GameState > GameStates.EndGame then
+        print("err: attempted to switch to an invalid gamestate.")
+        return
+    end
+
+    local s_OldGameState = self.m_GameState
+    self.m_GameState = p_GameState
+
+    NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
 end
 
 return kPMServer()
