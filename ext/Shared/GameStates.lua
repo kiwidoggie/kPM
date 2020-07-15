@@ -1,4 +1,4 @@
-kPMStates =
+GameStates =
 {
     -- There is no gamestate, used for initialization
     None = 0,
