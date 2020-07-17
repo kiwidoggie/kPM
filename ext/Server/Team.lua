@@ -1,6 +1,6 @@
 local Team = class("Team")
 
-require ("ServerConfig")
+require ("__shared/kPMConfig")
 
 function Team:__init(p_TeamId, p_TeamName, p_ClanTag)
     -- Check that we have a valid team
@@ -14,12 +14,12 @@ function Team:__init(p_TeamId, p_TeamName, p_ClanTag)
         return
     end
 
-    if #p_TeamName == 0 or #p_TeamName > ServerConfig.MaxTeamNameLength then
+    if #p_TeamName == 0 or #p_TeamName > kPMConfig.MaxTeamNameLength then
         print("err: invalid team name")
         return
     end
 
-    if #p_ClanTag > ServerConfig.MaxClanTagLength then
+    if #p_ClanTag > kPMConfig.MaxClanTagLength then
         print("err: invalid clantag length")
         return
     end

@@ -65,21 +65,21 @@ function Match:OnPlayerRup(p_Player)
     -- Player does not exist in our ready up state yet
     if self.m_ReadyUpState[s_PlayerId] == nil then
         self.m_ReadyUpState[s_PlayerId] = true
-        print("info: player " .. s_Player.name .. " ready up!")
+        print("info: player " .. p_Player.name .. " ready up!")
         return
     end
 
     -- Player has already been added, but has not readied up yet
     if self.m_ReadyUpState[s_PlayerId] == false then
         self.m_ReadyUpState[s_PlayerId] = true
-        print("info: player " .. s_Player.name .. " ready up!")
+        print("info: player " .. p_Player.name .. " ready up!")
         return
     end
 
     -- If the player was previously readied and now is unready
     if self.m_ReadyUpState[s_PlayerId] == true then
         self.m_ReadyUpState[s_PlayerId] = false
-        print("info: player " .. s_Player.name .. " unready up :(")
+        print("info: player " .. p_Player.name .. " unready up :(")
         return
     end
 end

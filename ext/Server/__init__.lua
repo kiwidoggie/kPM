@@ -1,9 +1,11 @@
 class "kPMServer"
 
-require ("ServerConfig")
+require ("__shared/kPMConfig")
 require ("__shared/GameStates")
+require ("__shared/Utils")
+
 require ("Match")
-local Team = require ("Team")
+require ("Team")
 
 function kPMServer:__init()
     print("server initialization")
@@ -19,7 +21,7 @@ function kPMServer:__init()
     self.m_Team2 = Team(TeamId.Team2, "Defenders", "")
 
     -- Create a new match
-    self.m_Match = Match(self.m_Team1, self.m_Team2, 24)
+    self.m_Match = Match(self.m_Team1, self.m_Team2, kPMConfig.MatchDefaultRounds)
 end
 
 function kPMServer:RegisterEvents()
@@ -44,6 +46,9 @@ function kPMServer:RegisterEvents()
 
     -- Events from the client
     self.m_ToggleRupEvent = NetEvents:Subscribe("kPM:ToggleRup", self, self.OnToggleRup)
+
+    -- Chat events
+    self.m_PlayerChatEvent = Events:Subscribe("Player:Chat", self, self.OnPlayerChat)
 end
 
 function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
@@ -137,6 +142,34 @@ function kPMServer:OnToggleRup(p_Player)
 
     -- Update the match information
     self.m_Match:OnPlayerRup(p_Player)
+end
+
+function kPMServer:OnPlayerChat(p_Player, p_RecipientMask, p_Message)
+    -- Check the player
+    if p_Player == nil then
+        return
+    end
+
+    -- Check the message
+    if p_Message == nil then
+        return
+    end
+
+    -- Check the length of the message
+    if #p_Message <= 0 then
+        return
+    end
+
+    -- Check for ready up state
+    if Utils.starts_with(p_Message, "!rup") then
+    end
+
+    if Utils.starts_with(p_Message, "!warmup") then
+        self:ChangeGameState(GameStates.Warmup)
+    end
+
+    if Utils.starts_with(p_Message, "!first") then
+    end
 end
 
 -- Helper functions

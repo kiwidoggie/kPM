@@ -2,6 +2,7 @@ class "kPMClient"
 
 require("ClientCommands")
 require("__shared/GameStates")
+require("__shared/kPMConfig")
 
 function kPMClient:__init()
     -- Start the client initialization
@@ -23,7 +24,6 @@ function kPMClient:__init()
 
     -- Ready-Up Inputs
     self.m_RupHeldTime = 0.0
-    self.m_RupMaxTime = 0.25
 
     -- Game State events
     self.m_GameStateChangedEvent = NetEvents:Subscribe("kPM:GameStateChanged", self, self.OnGameStateChanged)
@@ -101,7 +101,7 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
         end
 
         -- Toggle the rup state
-        if self.m_RupHeldTime >= self.m_RupMaxTime then
+        if self.m_RupHeldTime >= kPMConfig.MaxReadyUpTime then
             -- Get the local player id
             local s_Player = PlayerManager:GetLocalPlayer()
             if s_Player == nil then
@@ -114,6 +114,8 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
 
             -- Send the toggle event to the server
             NetEvents:Send("kPM:ToggleRup")
+
+            print("rup status changed")
 
             -- Reset our rup timer
             self.m_RupHeldTime = 0.0
