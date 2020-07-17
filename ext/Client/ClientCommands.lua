@@ -31,5 +31,16 @@ ClientCommands =
 
         -- Return the formatted string (x, y, z)
         return "(" .. position.x .. ", " .. position.y .. ", " .. position.z .. ")"        
+    end,
+
+    ReadyUp = function(args)
+        if #args ~= 0 then
+            return "invalid command"
+        end
+
+        -- Send the toggle event to the server
+        NetEvents:Send("kPM:ToggleRup")
+
+        return "Toggled Ready Up State"
     end
 }

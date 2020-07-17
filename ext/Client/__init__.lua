@@ -73,6 +73,8 @@ function kPMClient:RegisterCommands()
     
     -- Register console commands for users to leverage
     self.m_PositionCommand = Console:Register("kpm_player_pos", "Displays the current player position", ClientCommands.PlayerPosition)
+
+    self.m_ReadyUpCommand = Console:Register("kpm_ready_up", "Toggles the ready up state", ClientCommands.ReadyUp)
 end
 
 function kPMClient:UnregisterCommands()
