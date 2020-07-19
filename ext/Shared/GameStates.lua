@@ -6,21 +6,27 @@ GameStates =
     -- Warmup time, waiting for everyone to ready up
     Warmup = 1,
 
+    -- Knife rounds
+    KnifeRound = 2,
+
     -- Playing the first half
-    FirstHalf = 2,
+    FirstHalf = 3,
 
     -- Half-time in between halfs (rup again?)
-    HalfTime = 3,
+    HalfTime = 4,
 
     -- Second half of playtime
-    SecondHalf = 4,
+    SecondHalf = 5,
 
     -- Currently in a timeout
-    Timeout = 5,
+    Timeout = 6,
+
+    -- Strat time before each round
+    Strat = 7,
 
     -- Nade strat training
-    Strat = 6,
+    NadeTraining = 8,
 
     -- End of a match
-    EndGame = 7
+    EndGame = 9
 }

@@ -24,9 +24,6 @@ function kPMClient:__init()
 
     -- Ready-Up Inputs
     self.m_RupHeldTime = 0.0
-
-    -- Game State events
-    self.m_GameStateChangedEvent = NetEvents:Subscribe("kPM:GameStateChanged", self, self.OnGameStateChanged)
     
     -- The current gamestate, this is read-only and should only be changed by the SERVER
     self.m_GameState = GameStates.None
@@ -59,6 +56,11 @@ function kPMClient:RegisterEvents()
     -- Install input hooks
     self.m_InputPreUpdateHook = Hooks:Install("Input:PreUpdate", 1, self, self.OnInputPreUpdate)
 
+    -- Engine tick
+    self.m_EngineUpdateEvent = Events:Subscribe("Engine:Update", self, self.OnEngineUpdate)
+
+    -- Game State events
+    self.m_GameStateChangedEvent = NetEvents:Subscribe("kPM:GameStateChanged", self, self.OnGameStateChanged)
 end
 
 function kPMClient:UnregisterEvents()
@@ -123,6 +125,10 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
             self.m_RupHeldTime = 0.0
         end
     end
+end
+
+function kPMClient:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
+    -- TODO: Implement time related functionaity
 end
 
 function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)

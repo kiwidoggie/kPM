@@ -1,4 +1,4 @@
-class "Match"
+local Match = class("Match")
 
 function Match:__init(p_Team1, p_Team2, p_RoundCount)
     self.m_Team1 = p_Team1
@@ -6,15 +6,12 @@ function Match:__init(p_Team1, p_Team2, p_RoundCount)
 
     self.m_RoundCount = p_RoundCount
 
+    self.m_RupTickMax = 0.5 -- 1/2 a second
+    self.m_RupTick = 0.0
+
     -- Keep track of ready up status
     -- This uses the (PlayerId, bool) to prevent memory references
     self.m_ReadyUpState = { }
-end
-
--- ==========
--- Engine Callbacks
--- ==========
-function Match:OnUpdate(p_DeltaTime, p_SimulationDeltaTime)
 end
 
 -- ==========
@@ -88,8 +85,8 @@ function Match:IsAllPlayersRup()
     -- Get the player count
     local s_TotalPlayerCount = PlayerManager:GetPlayerCount()
 
-    -- Check to see if all players in-game have *some* kind of rup state
-    if s_TotalPlayerCount ~= #self.m_ReadyUpState then
+    -- Check to make sure that we have enough players to start
+    if s_TotalPlayerCount < kPMConfig.MinPlayerCount then
         return false
     end
 
@@ -121,3 +118,17 @@ function Match:IsAllPlayersRup()
     -- All conditions passed, all players are readied up
     return true
 end
+
+function Match:IsPlayerRup(p_PlayerId)
+    local s_PlayerId = p_PlayerId
+
+     -- Player does not exist in our ready up state yet
+    if self.m_ReadyUpState[s_PlayerId] == nil then
+        return false
+    end
+
+    -- Player has already been added, but has not readied up yet
+    return self.m_ReadyUpState[s_PlayerId] == true
+end
+
+return Match

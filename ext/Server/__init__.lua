@@ -4,8 +4,9 @@ require ("__shared/kPMConfig")
 require ("__shared/GameStates")
 require ("__shared/Utils")
 
-require ("Match")
 require ("Team")
+
+require ("Match")
 
 function kPMServer:__init()
     print("server initialization")
@@ -22,6 +23,9 @@ function kPMServer:__init()
 
     -- Create a new match
     self.m_Match = Match(self.m_Team1, self.m_Team2, kPMConfig.MatchDefaultRounds)
+
+    -- Ready up tick
+    self.m_RupTick = 0.0
 end
 
 function kPMServer:RegisterEvents()
@@ -53,6 +57,40 @@ end
 
 function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
     -- TODO: Implement time related functionaity
+    if self.m_GameState == GameStates.Warmup then
+        -- Check to see if the current time is greater or equal than our max
+        if self.m_RupTick >= kPMConfig.MaxRupTick then
+            self.m_RupTick = 0.0
+
+            -- Check if all players are readied up
+            if self.m_Match:IsAllPlayersRup() then
+                -- First change the game state so we have no logic running
+                self:ChangeGameState(GameStates.None)
+                ChatManager:Yell("All players have readied up, starting knife round...", 2.0)
+
+                -- Handle resetting all players or spawning them
+                self:ChangeGameState(GameStates.KnifeRound)
+            end
+
+            -- Update status to all players
+            local s_Players = PlayerManager:GetPlayers()
+            for l_Index, l_Player in ipairs(s_Players) do
+                -- Check if this specific player is readied up
+                local l_PlayerRup = self.m_Match:IsPlayerRup(l_Player.id)
+                
+                -- Send them a message for the specific duration
+                if l_PlayerRup then
+                    ChatManager:Yell("Hold {Interact} to Unready", 0.025, l_Player)
+                else
+                    ChatManager:Yell("Hold {Interact} to Ready Up", 0.025, l_Player)
+                end
+            end
+        end
+
+        -- Add the delta time to our rup timer
+        self.m_RupTick = self.m_RupTick + p_DeltaTime
+    elseif self.m_GameState == GameStates.EndGame then
+    end
 end
 
 function kPMServer:OnPlayerRequestJoin(p_Hook, p_JoinMode, p_AccountGuid, p_PlayerGuid, p_PlayerName)
@@ -174,7 +212,7 @@ end
 
 -- Helper functions
 function kPMServer:ChangeGameState(p_GameState)
-    if p_GameState <= GameStates.None or p_GameState > GameStates.EndGame then
+    if p_GameState < GameStates.None or p_GameState > GameStates.EndGame then
         print("err: attempted to switch to an invalid gamestate.")
         return
     end
