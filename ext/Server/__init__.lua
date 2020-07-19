@@ -18,14 +18,17 @@ function kPMServer:__init()
     self.m_GameState = GameStates.None
 
     -- Create our team information
-    self.m_Team1 = Team(TeamId.Team1, "Attackers", "")
-    self.m_Team2 = Team(TeamId.Team2, "Defenders", "")
+    self.m_Team1 = Team(TeamId.Team1, "Attackers", "nK")
+    self.m_Team2 = Team(TeamId.Team2, "Defenders", "mTw")
 
     -- Create a new match
     self.m_Match = Match(self.m_Team1, self.m_Team2, kPMConfig.MatchDefaultRounds)
 
     -- Ready up tick
     self.m_RupTick = 0.0
+
+    -- Name update
+    self.m_NameTick = 0.0
 end
 
 function kPMServer:RegisterEvents()
@@ -91,6 +94,45 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
         self.m_RupTick = self.m_RupTick + p_DeltaTime
     elseif self.m_GameState == GameStates.EndGame then
     end
+
+    -- Check if the name
+    if self.m_NameTick >= kPMConfig.MaxNameTick then
+        -- Reset the name tick
+        self.m_NameTick = 0.0
+
+        -- Iterate all players
+        local s_Players = PlayerManager:GetPlayers()
+        for l_Index, l_Player in ipairs(s_Players) do
+            -- Get the player team and name
+            local l_Team = l_Player.teamId
+            local l_Name = l_Player.name
+
+            local l_ClanTag = ""
+            if l_Team == TeamId.Team1 then
+                l_ClanTag = self.m_Team1:GetClanTag()
+            elseif l_Team == TeamId.Team2 then
+                l_ClanTag = self.m_Team2:GetClanTag()
+            end
+
+            -- Check to make sure the clan tag min length is > 1
+            if #l_ClanTag > kPMConfig.MinClanTagLength then
+                -- Check if the player name already starts with the clan tag
+                local l_Tag = "[" .. l_ClanTag .. "]"
+
+                -- Check if the name starts with the class time
+                if Utils.starts_with(l_Name, l_Tag) == false then
+                    -- New name
+                    local l_NewName = l_Tag .. " " .. l_Name
+
+                    -- Update the player name
+                    l_Player.name = l_NewName
+                    print("updating " .. l_Name .. " to " .. l_NewName)
+                end
+            end
+
+        end
+    end
+    self.m_NameTick = self.m_NameTick + p_DeltaTime
 end
 
 function kPMServer:OnPlayerRequestJoin(p_Hook, p_JoinMode, p_AccountGuid, p_PlayerGuid, p_PlayerName)

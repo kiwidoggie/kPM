@@ -30,4 +30,8 @@ function Team:__init(p_TeamId, p_TeamName, p_ClanTag)
     self.m_ClanTag = p_ClanTag
 end
 
+function Team:GetClanTag()
+    return self.m_ClanTag
+end
+
 return Team
