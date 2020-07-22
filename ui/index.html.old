@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/kPM.css">
+        <link rel="stylesheet" type="text/css" href="css/reset.css">
+    </head>
+    <body>
+
+        <!--
+            Match information
+        -->
+        <div class="safe-zone">
+            <div class="left-column">
+                Hello world! I am Live
+            </div>
+            <div class="middle-column">
+                Middle area
+            </div>
+            <div class="right-column">
+                <!-- Handle the Title Information -->
+                <div class="match-title">
+                    Promod <span style="color:crimson;">LIVE</span> MR12
+                </div>
+                <div class="match-mode">
+                    STRAT MODE
+                </div>
+                <div class="round-info">
+                    1 | 2
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

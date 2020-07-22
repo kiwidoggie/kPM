@@ -1,33 +1,75 @@
-<!DOCTYPE html>
 <html>
-    <head>
-        <link rel="stylesheet" type="text/css" href="css/kPM.css">
-        <link rel="stylesheet" type="text/css" href="css/reset.css">
-    </head>
-    <body>
-
-        <!--
-            Match information
-        -->
-        <div class="safe-zone">
-            <div class="left-column">
-                Hello world! I am Live
-            </div>
-            <div class="middle-column">
-                Middle area
-            </div>
-            <div class="right-column">
-                <!-- Handle the Title Information -->
-                <div class="match-title">
-                    Promod <span style="color:crimson;">LIVE</span> MR12
-                </div>
-                <div class="match-mode">
-                    STRAT MODE
-                </div>
-                <div class="round-info">
-                    1 | 2
-                </div>
-            </div>
-        </div>
-    </body>
+	<head>
+		<link rel="stylesheet" type="text/css" href="css/kPM.css">
+	</head>
+	<body>
+		<div class="window">
+			<div id="PromodHeader">
+				<b>Promod</b>
+			</div>
+			<div id="EndOfRoundPage" class=page>
+				<div class="header center">
+					<h1>Round Win!</h1>
+					<h2>Attackers eliminated!</h2>
+				</div>
+				<div class="content">
+					<div id="ScoreView" class="center">
+						<div id="Team1">
+							<div class="teamIcon">
+								<img src="./img/flag_us.jpg"/>
+							</div>
+							<div class="teamScore">
+								5
+							</div>
+						</div>
+						<div id="Team2">
+							<div class="teamIcon">
+								<img src="./img/flag_ru.jpg"/>
+							</div>
+							<div class="teamScore">
+								5
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div id="StratPage" class="page">
+				<div id="StratView">
+					<div class="right">
+						<ul>
+							<li><b>NadeTraining</b></li>
+							<li></li>
+							<li>Disable: hold <key>Q</key>+<key>E</key></li>
+							<li>Stop: Press <key>Left Mouse</key></li>
+							<li>Return: Press<key>E</key></li>
+							<li></li>
+							<li><b>Position</b></li>
+							<li></li>
+							<li>Save: Press <key>Q</key> twice</li>
+							<li>Load: Press <key>E</key> twice</li>
+							<li></li>
+							<li><b>Training Dummy</b></li>
+							<li></li>
+							<li>Spawn: Press <key>8</key></li>
+						</ul>
+					</div>
+				</div>
+			</div>
+			<div id="PreRoundPage" class=page>
+				<div class="header center">
+					<h1>Press <key>F</key> to Ready-Up</h1>
+					<h2>Pre-match Ready-Up Period</h2>
+				</div>
+				<div id="PreRoundView">
+					<div class="right">
+						<div>
+							<div>Waiting on</div>
+							<div><key>4</key></div>
+							<div>Players</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
 </html>

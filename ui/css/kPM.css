@@ -1,69 +1,76 @@
-body 
-{
-    background-color: lightblue;
+html {
+    text-shadow: 0px 0px 3px #0005;
+}
+#PromodHeader {
+    font-size: 2.5vw;
+    padding: 1.5vw;
+    padding-right: 2vw;
+    text-align: right
 }
 
-.match_info 
-{
-    position: static;
-    right: 60vw;
-    text-align: left;
+#NadeTraining {
+    display:unset;
+} 
+
+#PreRoundPage {
+    display: unset;
 }
 
-.left-column
-{
-    background-color: slateblue;
-    float: left;
-    width: 33.33%;
-    text-align: left;
+.window, .page {
+    width: 100vw;
+    height: 100vh;
 }
 
-.middle-column
-{
-    background-color: seagreen;
-    float: left;
-    width: 33.33%;
+li {
+    min-height:1vw;
+}
+
+key {
+    color: yellow;
+}
+
+#StratView {
+    font-size: 1.5vw;
+    padding: 1.5vw;
+}
+.aspectRatio {
+    width: 50%;
+}
+.center {
+    margin: auto;
     text-align: center;
 }
+.right {
+    text-align: right;
+}
 
-.right-column
-{
-    background-color: salmon;
+h1 {
+    font-size: 5vw;
+}
+h2 {
+    font-size: 2.5vw;
+}
+#ScoreView {
+    display: grid;
+    width: 25vw;
+    font-size: 2.5vw;
+}
+#ScoreView img {
+    width: 10vw;
+    height: 10vw;
+}
+#Team1 {
+    grid-column: 1;
+}
+#Team2 {
+    grid-column: 2;
+}
+#PreRoundView {
+    font-size:1.5vw;
+}
+#PreRoundView .right {
+    padding-right: 1vw;
+    width: 10vw;
     float: right;
-    width: 33.33%;
-    text-align: right;
-}
-
-.round-info
-{
-    position: absolute;
-    bottom: 10vh;
-    right: 5vw;
-    text-align: right;
-}
-
-.match-title
-{
-    padding-top: 5vh;
-    padding-right: 5vh;
-    color: lightskyblue;
-    font-size: xx-large;
-    font-family: Arial, Helvetica, sans-serif;
-    font-weight: bold;
-}
-
-.safe-zone
-{
-    background-color: red;
-    overflow-x: scroll;
-    white-space: nowrap;
-    width: 1280;
-    height: 720;
-}
-
-.row:after
-{
-    content: "";
-    display: table;
-    clear: both;
+    text-align: center;
 }
