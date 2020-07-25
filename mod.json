@@ -4,6 +4,7 @@
     "Authors": [ "kiwidog" ],
     "Version": "1.0.0",
     "HasVeniceEXT": true,
+    "HasWebUI": true,
     "Tags": [ "promod", "comp", "competitive" ],
     "Dependencies": {
         "veniceext": "^1.0.0"

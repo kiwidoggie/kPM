@@ -39,6 +39,12 @@ function kPMClient:OnExtensionLoaded()
 
     -- Register all of the events
     self:RegisterEvents()
+
+    -- Initialize the WebUI
+    WebUI:Init()
+
+    -- Show the WebUI
+    WebUI.Call('Show')
 end
 
 function kPMClient:OnExtensionUnloaded()
