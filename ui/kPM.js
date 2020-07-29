@@ -26,6 +26,25 @@ const GameStates =
     EndGame: 9
 }
 
+/**
+ * Page names.
+ * 
+ * These must match the GameStates enumerration
+ */
+const GameStatesPages =
+{
+    None: "_invalid_id",
+    Warmup: "page_warmup",
+    KnifeRound: "page_kniferound",
+    FirstHalf: "page_firsthalf",
+    HalfTime: "page_halftime",
+    SecondHalf: "page_secondhalf",
+    Timeout: "page_timeout",
+    Start: "page_strat",
+    NadeTraining: "page_nadetraining",
+    EndGame: "page_endgame"
+}
+
 function IsElementValid(p_Element)
 {
     return p_Element != null && p_Element != undefined;
@@ -59,12 +78,50 @@ function ChangeState(p_GameState)
     }
 
     // Get the first round page
-    var s_FirstRoundPage = document.getElementById("page_firsthalf");
-    if (!IsElementValid(s_FirstRoundPage))
+    var s_FirstHalfPage = document.getElementById("page_firsthalf");
+    if (!IsElementValid(s_FirstHalfPage))
     {
         console.error("could not get first half round paage.");
         return false;
     }
 
-    
+    // Get the half time page
+    var s_HalfTimePage = document.getElementById("page_halftime");
+    if (!IsElementValid(s_HalfTimePage))
+    {
+        console.error("could not get the half time page.");
+        return false;
+    }
+
+    // Get the second half page
+    var s_SecondHalfPage = document.getElementById("page_secondhalf");
+    if (!IsElementValid(s_SecondHalfPage))
+    {
+        console.error("could not get second half page.");
+        return false;
+    }
+
+    // Get the timeout page
+    var s_TimeoutPage = document.getElementById("page_timeout");
+    if (!IsElementValid(s_TimeoutPage))
+    {
+        console.error("could not get timeout page.");
+        return false;
+    }
+
+    // Get the strat time page
+    var s_StratPage = document.getElementById("page_timeout");
+    if (!IsElementValid(s_StratPage))
+    {
+        console.error("could not get strat page.");
+        return false;
+    }
+
+    // Get the nadetraining page
+    var s_NadeTrainingPage = document.getElementById("page_nadetraining");
+    if (!IsElementValid(s_NadeTrainingPage))
+    {
+        console.error("could not get the nadetraining page.");
+        return false;
+    }
 }
