@@ -8,6 +8,15 @@
 */
 
 /**
+ * 
+ */
+const ReadyStatus =
+{
+    NotReady: 0,
+    Ready: 1
+}
+
+/**
  * List of Page ID's.
  * 
  * These must match Shared/GameStates.lua
@@ -43,6 +52,42 @@ const GameStatesPages =
     Start: "page_strat",
     NadeTraining: "page_nadetraining",
     EndGame: "page_endgame"
+}
+
+/**
+ * Update WebUI ready up players and state
+ * 
+ * @param {int} p_WaitingOnPlayers 
+ * @param {bool} p_LocalRupStatus 
+ */
+function UpdateRupStatus(p_WaitingOnPlayers, p_LocalRupStatus)
+{
+    var s_RupState = document.getElementById("rup_state");
+    if (!IsElementValid(s_RupState))
+    {
+        console.error("could not get rup_state.");
+        return false;
+    }
+
+    var s_RupCount = document.getElementById("rup_count");
+    if (!IsElementValid(s_RupCount))
+    {
+        console.error("could not get rup_count.");
+        return false;
+    }
+
+    if (p_LocalRupStatus)
+    {
+        s_RupState.innerText = "Un-Ready";
+    }
+    else
+    {
+        s_RupState.innerText = "Ready-Up";
+    }
+
+    s_RupCount.innerText = p_WaitingOnPlayers;
+
+    return true;
 }
 
 /**

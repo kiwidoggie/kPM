@@ -81,6 +81,9 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
                 -- Check if this specific player is readied up
                 local l_PlayerRup = self.m_Match:IsPlayerRup(l_Player.id)
                 
+                -- Send to client to update WebUI
+                NetEvents:SendTo("kPM:RupStateChanged", l_Player, 1, l_PlayerRup)
+
                 -- Send them a message for the specific duration
                 if l_PlayerRup then
                     ChatManager:Yell("Hold {Interact} to Unready", 0.025, l_Player)

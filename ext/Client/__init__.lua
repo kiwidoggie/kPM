@@ -67,6 +67,10 @@ function kPMClient:RegisterEvents()
 
     -- Game State events
     self.m_GameStateChangedEvent = NetEvents:Subscribe("kPM:GameStateChanged", self, self.OnGameStateChanged)
+
+    -- Ready Up State Update
+    self.m_RupStateEvent = NetEvents:Subscribe("kPM:RupStateChanged", self, self.OnRupStateChanged)
+
 end
 
 function kPMClient:UnregisterEvents()
@@ -137,6 +141,20 @@ function kPMClient:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
     -- TODO: Implement time related functionaity
 end
 
+function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
+    if p_WaitingOnPlayers == nil then
+        print("err: invalid waiting on player count.")
+        return
+    end
+
+    if p_LocalRupStatus == nil then
+        print("err: invalid local rup status.")
+        return
+    end
+
+    WebUI:ExecuteJS("UpdateRupStatus(" .. p_WaitingOnPlayers .. ", " .. p_LocalRupStatus .. ");")
+end
+
 function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     -- Validate our gamestates
     if p_OldGameState == nil or p_GameState == nil then
@@ -151,6 +169,9 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
 
     print("info: gamestate " .. p_OldGameState .. " -> " .. p_GameState)
     self.m_GameState = p_GameState
+
+    -- Update the WebUI
+    WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
 end
 
 return kPMClient()
