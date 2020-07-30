@@ -45,11 +45,24 @@ const GameStatesPages =
     EndGame: "page_endgame"
 }
 
+/**
+ * Checks if an element is valid.
+ * 
+ * This will check if an element is not null or undefined
+ * 
+ * @param {div} p_Element 
+ */
 function IsElementValid(p_Element)
 {
     return p_Element != null && p_Element != undefined;
 }
 
+/**
+ * Changes gamestate.
+ * 
+ * This changes the gamestate within javascript and hides/shows the required pages
+ * @param {GameStates} p_GameState 
+ */
 function ChangeState(p_GameState)
 {
     // Validate that our index is within the bounds
