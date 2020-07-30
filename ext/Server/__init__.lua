@@ -83,13 +83,6 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
                 
                 -- Send to client to update WebUI
                 NetEvents:SendTo("kPM:RupStateChanged", l_Player, 1, l_PlayerRup)
-
-                -- Send them a message for the specific duration
-                if l_PlayerRup then
-                    ChatManager:Yell("Hold {Interact} to Unready", 0.025, l_Player)
-                else
-                    ChatManager:Yell("Hold {Interact} to Ready Up", 0.025, l_Player)
-                end
             end
         end
 
