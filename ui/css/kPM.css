@@ -1,19 +1,55 @@
 html {
     text-shadow: 0px 0px 3px #0005;
 }
-#PromodHeader {
+#promod_header {
     font-size: 2.5vw;
     padding: 1.5vw;
     padding-right: 2vw;
-    text-align: right
+    text-align: right;
+    display: none;
 }
 
-#NadeTraining {
-    display:unset;
+#page_nadetraining {
+    display: none;
 } 
 
-#PreRoundPage {
-    display: unset;
+#page_warmup {
+    display: none;
+}
+
+#page_kniferound
+{
+    display: none;
+}
+
+#page_endgame
+{
+    display: none;
+}
+
+#page_firsthalf
+{
+    display: none;
+}
+
+#page_secondhalf
+{
+    display: none;
+}
+
+#page_halftime
+{
+    display: none;
+}
+
+#page_timeout
+{
+    display: none;
+}
+
+#page_strat
+{
+    display: none;
 }
 
 .window, .page {
@@ -23,10 +59,16 @@ html {
 
 li {
     min-height:1vw;
+    list-style: none;
 }
 
 key {
     color: yellow;
+}
+
+#strat_countdown
+{
+    text-align: center;
 }
 
 #StratView {
@@ -50,12 +92,12 @@ h1 {
 h2 {
     font-size: 2.5vw;
 }
-#ScoreView {
+#score_view {
     display: grid;
     width: 25vw;
     font-size: 2.5vw;
 }
-#ScoreView img {
+#score_view img {
     width: 10vw;
     height: 10vw;
 }
@@ -65,10 +107,11 @@ h2 {
 #Team2 {
     grid-column: 2;
 }
-#PreRoundView {
+#warmup_view {
     font-size:1.5vw;
 }
-#PreRoundView .right {
+
+#warmup_view .right {
     padding-right: 1vw;
     width: 10vw;
     float: right;

@@ -59,69 +59,36 @@ function ChangeState(p_GameState)
         return false;
     }
 
-    // Get all of the div's by ID
-
-    // Get the warmup page
-    var s_WarmupPage = document.getElementById("page_warmup");
-    if (!IsElementValid(s_WarmupPage))
+    // Iterate through all of the pages and make sure that they exist
+    var s_StateIndex = GameStates.None;
+    for (const [l_StateName, l_StatePage] of Object.entries(GameStatesPages))
     {
-        console.error("could not get the warmup page.");
-        return false;
+        // We want to skip the none state because it should never be used
+        if (s_StateIndex == GameStates.None)
+        {
+            s_StateIndex += 1;
+            continue;
+        }
+        
+        // Get the page div
+        var l_Page = document.getElementById(l_StatePage);
+        if (!IsElementValid(l_Page))
+        {
+            console.error("could not load page", l_StatePage);
+            return false;
+        }
+        
+        // Debugging information
+        //console.log(s_StateIndex, l_StateName, l_StatePage);
+
+        if (s_StateIndex == p_GameState)
+            l_Page.style.display = "unset";
+        else
+            l_Page.style.display = "none";
+
+        // Increment the state index
+        s_StateIndex += 1;
     }
 
-    // Get the knife round page
-    var s_KnifePage = document.getElementById("page_knife");
-    if (!IsElementValid(s_KnifePage))
-    {
-        console.error("could not get knife page.");
-        return false;
-    }
-
-    // Get the first round page
-    var s_FirstHalfPage = document.getElementById("page_firsthalf");
-    if (!IsElementValid(s_FirstHalfPage))
-    {
-        console.error("could not get first half round paage.");
-        return false;
-    }
-
-    // Get the half time page
-    var s_HalfTimePage = document.getElementById("page_halftime");
-    if (!IsElementValid(s_HalfTimePage))
-    {
-        console.error("could not get the half time page.");
-        return false;
-    }
-
-    // Get the second half page
-    var s_SecondHalfPage = document.getElementById("page_secondhalf");
-    if (!IsElementValid(s_SecondHalfPage))
-    {
-        console.error("could not get second half page.");
-        return false;
-    }
-
-    // Get the timeout page
-    var s_TimeoutPage = document.getElementById("page_timeout");
-    if (!IsElementValid(s_TimeoutPage))
-    {
-        console.error("could not get timeout page.");
-        return false;
-    }
-
-    // Get the strat time page
-    var s_StratPage = document.getElementById("page_timeout");
-    if (!IsElementValid(s_StratPage))
-    {
-        console.error("could not get strat page.");
-        return false;
-    }
-
-    // Get the nadetraining page
-    var s_NadeTrainingPage = document.getElementById("page_nadetraining");
-    if (!IsElementValid(s_NadeTrainingPage))
-    {
-        console.error("could not get the nadetraining page.");
-        return false;
-    }
+    return true;
 }
