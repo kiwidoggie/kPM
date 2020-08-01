@@ -1,6 +1,11 @@
 kPMConfig =
 {
     -- ==========
+    -- Debug mode options
+    -- ==========
+    DebugMode = false,
+
+    -- ==========
     -- Client configuration options
     -- ==========
 

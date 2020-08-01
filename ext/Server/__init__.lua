@@ -22,7 +22,7 @@ function kPMServer:__init()
     self.m_Team2 = Team(TeamId.Team2, "Defenders", "mTw")
 
     -- Create a new match
-    self.m_Match = Match(self.m_Team1, self.m_Team2, kPMConfig.MatchDefaultRounds)
+    self.m_Match = Match(self, self.m_Team1, self.m_Team2, kPMConfig.MatchDefaultRounds)
 
     -- Ready up tick
     self.m_RupTick = 0.0
@@ -61,33 +61,7 @@ end
 function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
     -- TODO: Implement time related functionaity
     if self.m_GameState == GameStates.Warmup then
-        -- Check to see if the current time is greater or equal than our max
-        if self.m_RupTick >= kPMConfig.MaxRupTick then
-            self.m_RupTick = 0.0
-
-            -- Check if all players are readied up
-            if self.m_Match:IsAllPlayersRup() then
-                -- First change the game state so we have no logic running
-                self:ChangeGameState(GameStates.None)
-                ChatManager:Yell("All players have readied up, starting knife round...", 2.0)
-
-                -- Handle resetting all players or spawning them
-                self:ChangeGameState(GameStates.KnifeRound)
-            end
-
-            -- Update status to all players
-            local s_Players = PlayerManager:GetPlayers()
-            for l_Index, l_Player in ipairs(s_Players) do
-                -- Check if this specific player is readied up
-                local l_PlayerRup = self.m_Match:IsPlayerRup(l_Player.id)
-                
-                -- Send to client to update WebUI
-                NetEvents:SendTo("kPM:RupStateChanged", l_Player, 1, l_PlayerRup)
-            end
-        end
-
-        -- Add the delta time to our rup timer
-        self.m_RupTick = self.m_RupTick + p_DeltaTime
+        self.m_Match:OnWarmup(p_DeltaTime)
     elseif self.m_GameState == GameStates.EndGame then
     end
 
@@ -259,6 +233,13 @@ function kPMServer:ChangeGameState(p_GameState)
     self.m_GameState = p_GameState
 
     NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
+end
+
+function kPMServer:SpawnPlayer(p_Player)
+    -- Validate our player
+    if p_Player == nil then
+        return
+    end
 end
 
 return kPMServer()
