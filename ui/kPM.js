@@ -55,6 +55,67 @@ const GameStatesPages =
 }
 
 /**
+ * Update the endgame page.
+ * 
+ * @param {bool} p_RoundWon 
+ * @param {TeamId/int} p_WinningTeam 
+ * @param {int} p_Team1Score 
+ * @param {int} p_Team2Score 
+ */
+function UpdateRoundEndStatus(p_RoundWon, p_WinningTeam, p_Team1Score, p_Team2Score)
+{
+    // Get the round state element
+    var s_RoundState = document.getElementById("round_state");
+    if (!IsElementValid(s_RoundState))
+    {
+        console.error("could not get round_state.");
+        return false;
+    }
+
+    // Get the round winner state
+    var s_RoundWinnerState = document.getElementById("round_winner_state");
+    if (!IsElementValid(s_RoundWinnerState))
+    {
+        console.error("could not get the round winner state.");
+        return false;
+    }
+
+    // Get the team1 score
+    var s_RoundTeam1Score = document.getElementById("round_team1_score");
+    if (!IsElementValid(s_RoundTeam1Score))
+    {
+        console.error("could not get the round team1 score.");
+        return false;
+    }
+
+    // Get the team2 score
+    var s_RoundTeam2Score = document.getElementById("round_team2_score");
+    if (!IsElementValid(s_RoundTeam2Score))
+    {
+        console.error("could not get the round team2 score.");
+        return false;
+    }
+
+    // Update if we won or lost the round
+    if (p_RoundWon)
+        s_RoundState.innerText = "Win";
+    else
+        s_RoundState.innerText = "Loss";
+    
+    // Update the winning team
+    if (p_WinningTeam == 1)
+        s_RoundWinnerState.innerText = "Attackers";
+    else
+        s_RoundWinnerState.innerText = "Defenders";
+    
+    // Update the round scores
+    s_RoundTeam1Score.innerText = p_Team1Score;
+    s_RoundTeam2Score.innerText = p_Team2Score;
+
+    return true;
+}
+
+/**
  * Update WebUI ready up players and state
  * 
  * @param {int} p_WaitingOnPlayers 
@@ -62,6 +123,7 @@ const GameStatesPages =
  */
 function UpdateRupStatus(p_WaitingOnPlayers, p_LocalRupStatus)
 {
+    // Get the ready-up state
     var s_RupState = document.getElementById("rup_state");
     if (!IsElementValid(s_RupState))
     {
@@ -69,6 +131,7 @@ function UpdateRupStatus(p_WaitingOnPlayers, p_LocalRupStatus)
         return false;
     }
 
+    // Get the currently readied up count
     var s_RupCount = document.getElementById("rup_count");
     if (!IsElementValid(s_RupCount))
     {
@@ -76,6 +139,7 @@ function UpdateRupStatus(p_WaitingOnPlayers, p_LocalRupStatus)
         return false;
     }
 
+    // Update the text accordingly
     if (p_LocalRupStatus)
     {
         s_RupState.innerText = "Un-Ready";

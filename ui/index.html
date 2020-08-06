@@ -19,8 +19,8 @@
 			<!-- TODO: rename to page_roundend-->
 			<div id="page_endgame" class="page">
 				<div class="header center">
-					<h1>Round Win!</h1>
-					<h2>Attackers eliminated!</h2>
+					<h1>Round <span id="round_state">State</span>!</h1>
+					<h2><span id="round_winner_state">Attackers</span> eliminated!</h2>
 				</div>
 				<div class="content">
 					<div id="score_view" class="center">
@@ -29,7 +29,7 @@
 								<img src="./img/flag_us.jpg"/>
 							</div>
 							<div class="teamScore">
-								5
+								<span id="round_team1_score">0</span>
 							</div>
 						</div>
 						<div id="Team2">
@@ -37,7 +37,7 @@
 								<img src="./img/flag_ru.jpg"/>
 							</div>
 							<div class="teamScore">
-								5
+								<span id="round_team2_score">0</span>
 							</div>
 						</div>
 					</div>

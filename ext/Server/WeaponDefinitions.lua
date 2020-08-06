@@ -2,17 +2,29 @@ WeaponDefinitions = {
     -- TODO: AK47
     -- TODO: 50Cal Sniper
     -- TODO: M16
-    -- TODO: Flashbang
-
+	-- TODO: Flashbang
+	
+	-- Assault
     AK74M = {
 		uniqueName = "Weapons/AK74M/U_AK74M",
 		weaponName = "Weapons/AK74M/AK74",
 		displayName = "AK-74M",
 		fancyImageName = "fb://UI/Art/Persistence/Weapons/Fancy/ak74m",
 		imageName = "fb://UI/Art/Persistence/Weapons/ak74m",
-		partitionGuid = "1556281a-0f0b-4eb3-b280-661018f8d52f",
+		--partitionGuid = "1556281a-0f0b-4eb3-b280-661018f8d52f",
 		instanceGuid = "3ba55147-6619-4697-8e2b-ac6b1d183c0e"
-    },
+	},
+	
+	-- SMG
+	AKS74u = {
+		uniqueName = "Weapons/AKS74u/U_AKS74u",
+		weaponName = "Weapons/AKS74u/AKS74u",
+		displayName = "AKS-74u",
+		fancyImageName = "fb://UI/Art/Persistence/Weapons/Fancy/aks74u",
+		imageName = "fb://UI/Art/Persistence/Weapons/aks74u",
+		--partitionGuid = "1556281a-0f0b-4eb3-b280-661018f8d52f",
+		instanceGuid = "A4F108EB-1FA2-4C94-93FE-357B1D7EBF4A"
+	},
     
     Grenade = {
 		uniqueName = "Weapons/M67/U_M67",
