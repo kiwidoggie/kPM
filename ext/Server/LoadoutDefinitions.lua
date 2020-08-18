@@ -45,7 +45,25 @@ g_USKits = {
         orderId = 1
     },
     SpecOps = {
+        name = "SpecOps",
+        headGear = "us_helmet08",
+        head = "sp_campo",
+        upperBody = "us_upperbody04",
+        lowerBody = "us_lowerbody03",
+        teamLimitation = 2,
 
+        weapons = {
+            [1] = {
+                type = WeaponDefinitions.AKS74u,
+                magazineCount = 9,
+                optics = { WeaponAttachments.IronSights },
+                underRailAttachments = { WeaponAttachments.AKS74u.Foregrip }
+            },
+            [2] = {
+                type = WeaponDefinitions.M9,
+                magazineCount = 3
+            }
+        }
     },
     Demo = {
 
