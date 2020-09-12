@@ -1,15 +1,52 @@
 class "LoadoutManager"
 
 require ("__shared/kPMConfig")
+require ("__shared/LoadoutLoader")
 
 function LoadoutManager:__init()
+    -- Created custom customizations
+    self.m_AttackerSoldierCustomizationAssault = nil
+    self.m_AttackerSoldierCustomizationSmg = nil
+    self.m_AttackerSoldierCustomizationDemo = nil
+    self.m_AttackerSoldierCustomizationRecon = nil
 
-    -- Game engine references
-    self.m_MpSoldierBlueprint = nil
+    self.m_DefenderSoldierCustomizationAssault = nil
+    self.m_DefenderSoldierCustomizationSmg = nil
+    self.m_DefenderSoldierCustomizationDemo = nil
+    self.m_DefenderSoldierCustomizationRecon = nil
 
-    -- Soldier customization
-    self.m_AttackerSoldierCustomization = nil
-    self.m_DefenderSoldierCustomization = nil
+    self.m_DebugSoldierCustomization = nil
+
+    -- Loader
+    self.m_LoadoutLoader = LoadoutLoader()
+end
+
+function LoadoutManager:OnPartitionLoaded(p_Partition)
+    if p_Partition == nil then
+        return
+    end
+
+    -- Forward event to loadout loader
+    self.m_LoadoutLoader:OnPartitionLoaded(p_Partition)
+end
+
+function LoadoutManager:OnLevelDestroyed()
+
+    -- Remove all custom customizations
+    self.m_AttackerSoldierCustomizationAssault = nil
+    self.m_AttackerSoldierCustomizationSmg = nil
+    self.m_AttackerSoldierCustomizationDemo = nil
+    self.m_AttackerSoldierCustomizationRecon = nil
+
+    self.m_DefenderSoldierCustomizationAssault = nil
+    self.m_DefenderSoldierCustomizationSmg = nil
+    self.m_DefenderSoldierCustomizationDemo = nil
+    self.m_DefenderSoldierCustomizationRecon = nil
+
+    self.m_DebugSoldierCustomization = nil
+
+    -- Update the loadout loader
+    self.m_LoadoutLoader:OnLevelDestroyed()
 end
 
 function LoadoutManager:IsKitAllowed(p_Player, p_SelectedKitName)
@@ -33,56 +70,6 @@ function LoadoutManager:IsKitAllowed(p_Player, p_SelectedKitName)
     end
 
     
-end
-
-function LoadoutManager:OnPartitionLoaded(p_Partition)
-    -- Hold our primary instance
-    local s_PrimaryInstance = p_Partition.primaryInstance
-
-    -- Validate primary instance
-    if s_PrimaryInstance ~= nil then
-        -- Check the primary instance if we have a SoldierBlueprint
-        if self.m_MpSoldierBlueprint == nil and s_PrimaryInstance:Is("SoldierBlueprint") then
-            local s_SoldierBlueprint = SoldierBlueprint(s_PrimaryInstance)
-            if s_SoldierBlueprint.name == "Characters/Soldiers/MpSoldier" then
-                -- Print out information in debug mode
-                if kPMConfig.DebugMode then
-                    print("MpSoldier Blueprint: " .. s_SoldierBlueprint.instanceGuid)
-                end
-
-                -- Save our reference
-                self.m_MpSoldierBlueprint = s_SoldierBlueprint
-            end
-        end
-
-        -- Check if the primary instance is VeniceSoldierCustomizationAsset
-        if s_PrimaryInstance:Is("VeniceSoldierCustomizationAsset") then
-            local s_CustomizationAsset = VeniceSoldierCustomizationAsset(s_PrimaryInstance)
-            --[[
-                Example Names:
-                Gameplay/Kits/USSupport_XP4
-                Gameplay/Kits/USAssault
-                Gameplay/Kits/RUAssault_XP4
-            ]]--
-            local s_AssetName = s_CustomizationAsset.name
-
-            if s_CustomizationAsset.labelSid == "M_ID_RECON" then
-            elseif s_CustomizationAsset.labelSid == "M_ID_ENGINEER" then
-            elseif s_CustomizationAsset.labelSid == "M_ID_ASSAULT" then
-            elseif s_CustomizationAsset.labelSid == "ID_M_SUPPORT" then
-            end
-        end
-    end
-
-    -- Check if we have the correct primary instance
-
-end
-
-function LoadoutManager:OnLevelDestroyed()
-    -- TODO: Remove all bindings/creations
-
-    -- Remove MpSoldier blueprint
-    self.m_MpSoldierBlueprint = nil
 end
 
 return LoadoutManager()

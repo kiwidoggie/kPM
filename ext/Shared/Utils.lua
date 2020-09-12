@@ -8,5 +8,9 @@ Utils =
 
     ends_with = function(p_InputString, p_EndsWith)
         return p_EndsWith == "" or p_InputString:sub(-#p_EndsWith) == p_EndsWith
-    end
+    end,
+
+    contains = function(p_InputString, p_Contains)
+        return string.find(p_InputString, p_Contains) ~= nil
+    end,
 }
