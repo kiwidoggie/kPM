@@ -62,6 +62,9 @@ function kPMServer:RegisterEvents()
 
     -- Partition events
     self.m_PartitionLoadedEvent = Events:Subscribe("Partition:Loaded", self, self.OnPartitionLoaded)
+
+    -- Level destroyed event
+    self.m_LevelDestroyedEvent = Events:Subscribe("Level:Destroy", self, self.OnLevelDestroyed)
 end
 
 function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
@@ -236,6 +239,11 @@ function kPMServer:OnPlayerChat(p_Player, p_RecipientMask, p_Message)
 
     if Utils.starts_with(p_Message, "!first") then
     end
+end
+
+function kPMServer:OnLevelDestroyed()
+    -- Forward event to loadout mananager
+    self.m_LoadoutManager:OnLevelDestroyed()
 end
 
 -- Helper functions
