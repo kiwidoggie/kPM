@@ -8,6 +8,22 @@ function LoadoutLoader:__init()
     self.m_MpSoldierBlueprint = nil
 end
 
+function LoadoutLoader:GetSoldierBlueprint()
+    return self.m_MpSoldierBlueprint
+end
+
+function LoadoutLoader:GetUnlockAssets()
+    return self.m_VeniceUnlockAssets
+end
+
+function LoadoutLoader:GetAttackerSoldierCustomizations()
+    return self.m_AttackerVeniceSoldierCustomizations
+end
+
+function LoadoutLoader:GetDefenderSoldierCustomizations()
+    return self.m_DefenderVeniceSoldierCustomizations
+end
+
 function LoadoutLoader:OnPartitionLoaded(p_Partition)
     -- Hold our primary instance
     local s_PrimaryInstance = p_Partition.primaryInstance
@@ -82,7 +98,8 @@ function LoadoutLoader:OnLevelDestroyed()
 
     -- Reset our found original references
     self.m_VeniceUnlockAssets = { }
-    self.m_VeniceSoldierCustomizations = { }
+    self.m_AttackerVeniceSoldierCustomizations = { }
+    self.m_DefenderVeniceSoldierCustomizations = { }
 end
 
 return LoadoutLoader()

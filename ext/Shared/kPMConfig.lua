@@ -36,4 +36,13 @@ kPMConfig =
 
     -- Minimum clan tag length
     MinClanTagLength = 1,
+
+    -- Maximum strat time (default: 5 seconds)
+    MaxStratTime = 5.0,
+
+    -- Maximum knife round time (default: 5 minutes)
+    MaxKnifeRoundTime = 300.0,
+
+    -- Maximum transitition time between gamestates (default: 2 seconds)
+    MaxTransititionTime = 2.0,
 }

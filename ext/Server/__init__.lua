@@ -5,7 +5,7 @@ require ("__shared/GameStates")
 require ("__shared/Utils")
 
 require ("Team")
-
+require ("LoadoutManager")
 require ("Match")
 
 function kPMServer:__init()
@@ -18,11 +18,11 @@ function kPMServer:__init()
     self.m_GameState = GameStates.None
 
     -- Create our team information
-    self.m_Team1 = Team(TeamId.Team1, "Attackers", "nK")
-    self.m_Team2 = Team(TeamId.Team2, "Defenders", "mTw")
+    self.m_Attackers = Team(TeamId.Team1, "Attackers", "nK")
+    self.m_Defenders = Team(TeamId.Team2, "Defenders", "mTw")
 
     -- Create a new match
-    self.m_Match = Match(self, self.m_Team1, self.m_Team2, kPMConfig.MatchDefaultRounds)
+    self.m_Match = Match(self, self.m_Attackers, self.m_Defenders, kPMConfig.MatchDefaultRounds)
 
     -- Ready up tick
     self.m_RupTick = 0.0
@@ -30,8 +30,14 @@ function kPMServer:__init()
     -- Name update
     self.m_NameTick = 0.0
 
+    -- Match management
+    self.m_AllowedGuids = { }
+
     -- Loadout manager
     self.m_LoadoutManager = LoadoutManager()
+
+    -- Callbacks
+    self.m_MatchStateCallbacks = { }
 end
 
 function kPMServer:RegisterEvents()
@@ -68,11 +74,9 @@ function kPMServer:RegisterEvents()
 end
 
 function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
-    -- TODO: Implement time related functionaity
-    if self.m_GameState == GameStates.Warmup then
-        self.m_Match:OnWarmup(p_DeltaTime)
-    elseif self.m_GameState == GameStates.EndGame then
-    end
+
+    -- Update the match
+    self.m_Match:OnEngineUpdate(self.m_GameState, p_DeltaTime)
 
     -- Check if the name
     if self.m_NameTick >= kPMConfig.MaxNameTick then
@@ -88,9 +92,9 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
 
             local l_ClanTag = ""
             if l_Team == TeamId.Team1 then
-                l_ClanTag = self.m_Team1:GetClanTag()
+                l_ClanTag = self.m_Attackers:GetClanTag()
             elseif l_Team == TeamId.Team2 then
-                l_ClanTag = self.m_Team2:GetClanTag()
+                l_ClanTag = self.m_Defenders:GetClanTag()
             end
 
             -- Check to make sure the clan tag min length is > 1
@@ -139,8 +143,48 @@ function kPMServer:OnPlayerRequestJoin(p_Hook, p_JoinMode, p_AccountGuid, p_Play
     --if p_PlayerName ~= "NoFaTe" then
     --    p_Hook:Return(false)
     --end
+    for l_Index, l_Guid in ipairs(self.m_AllowedGuids) do
+        -- Check if the guid is on the allow list
+        if l_Guid == p_AccountGuid then
+            -- Allow for reconnects if a player disconnects
+            p_Hook:Return(true)
+            return
+        end
+    end
 
-    p_Hook:Return(true)
+    -- This means that we were not in warmup, endgame, or no gamestate
+    -- And a player tried to join a match in progress that wasn't there at the beginning
+
+    p_Hook:Return(false)
+end
+
+-- This function takes a snapshot of all players in the server and adds them to the allow list
+function kPMServer:UpdateAllowedGuids()
+    -- Clear our the previous guids
+    self.m_AllowedGuids = { }
+
+    -- Iterate through all players
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        -- Validate the player
+        if l_Player == nil then
+            if kPMConfig.DebugMode then
+                print("err: invalid player at index: " .. l_Index)
+            end
+            goto update_allowed_guids_continue
+        end
+
+        -- Add the account guid to the allowed guid
+        table.insert(self.m_AllowedGuids, l_Player.accountGuid)
+
+        -- Debug logging
+        if kPMConfig.DebugMode then
+            print("added player: " .. l_Player.name .. " guid: " .. l_Player.accountGuid .. " to the allow list.")
+        end
+
+        -- Lua does not have continue statement, so this hack is a workaround
+        ::update_allowed_guids_continue::
+    end
 end
 
 function kPMServer:OnPlayerJoining(p_Name, p_Guid, p_IpAddress, p_AccountGuid)
@@ -255,6 +299,8 @@ function kPMServer:ChangeGameState(p_GameState)
 
     local s_OldGameState = self.m_GameState
     self.m_GameState = p_GameState
+
+    self.m_Match:OnTransition(s_OldGameState, p_GameState)
 
     NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
 end
