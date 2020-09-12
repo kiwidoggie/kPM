@@ -29,6 +29,9 @@ function kPMServer:__init()
 
     -- Name update
     self.m_NameTick = 0.0
+
+    -- Loadout manager
+    self.m_LoadoutManager = LoadoutManager()
 end
 
 function kPMServer:RegisterEvents()
@@ -56,6 +59,9 @@ function kPMServer:RegisterEvents()
 
     -- Chat events
     self.m_PlayerChatEvent = Events:Subscribe("Player:Chat", self, self.OnPlayerChat)
+
+    -- Partition events
+    self.m_PartitionLoadedEvent = Events:Subscribe("Partition:Loaded", self, self.OnPartitionLoaded)
 end
 
 function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
@@ -150,6 +156,16 @@ end
 function kPMServer:OnPlayerSelectTeam(p_Hook, p_Player, p_Team)
     -- p_Team is R/W
     -- p_Player is RO
+end
+
+function kPMServer:OnPartitionLoaded(p_Partition)
+    -- Validate our partition
+    if p_Partition == nil then
+        return
+    end
+
+    -- Send event to the loadout manager
+    self.m_LoadoutManager:OnPartitionLoaded(p_Partition)
 end
 
 function kPMServer:OnSoldierDamage(p_Hook, p_Soldier, p_Info, p_GiverInfo)

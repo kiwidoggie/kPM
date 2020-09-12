@@ -1,11 +1,11 @@
-class "Loadout"
+class "LoadoutManager"
 
 require ("__shared/kPMConfig")
 
-function Loadout:__init()
+function LoadoutManager:__init()
 end
 
-function Loadout:IsKitAllowed(p_Player, p_SelectedKitName)
+function LoadoutManager:IsKitAllowed(p_Player, p_SelectedKitName)
     -- Enable all kits with debug mode
     if kPMConfig.DebugMode then
         return true
@@ -27,4 +27,8 @@ function Loadout:IsKitAllowed(p_Player, p_SelectedKitName)
 
     
 end
-return Loadout()
+
+function LoadoutManager:OnPartitionLoaded(p_Partition)
+end
+
+return LoadoutManager()

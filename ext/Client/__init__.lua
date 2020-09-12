@@ -1,6 +1,7 @@
 class "kPMClient"
 
 require("ClientCommands")
+require("Freecam")
 require("__shared/GameStates")
 require("__shared/kPMConfig")
 
@@ -27,6 +28,9 @@ function kPMClient:__init()
     
     -- The current gamestate, this is read-only and should only be changed by the SERVER
     self.m_GameState = GameStates.None
+
+    -- Freecamera
+    self.m_Freecam = FreeCam()
 end
 
 -- ==========
@@ -70,6 +74,13 @@ function kPMClient:RegisterEvents()
 
     -- Ready Up State Update
     self.m_RupStateEvent = NetEvents:Subscribe("kPM:RupStateChanged", self, self.OnRupStateChanged)
+
+    -- Player Events
+    self.m_PlayerRespawnEvent = Events:Subscribe("Player:Respawn", self, self.OnPlayerRespawn)
+
+    -- Client events
+    self.m_ClientUpdateInputEvent = Events:Subscribe("Client:UpdateInput", self, self.OnUpdateInput)
+
 
 end
 
@@ -135,10 +146,16 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
             self.m_RupHeldTime = 0.0
         end
     end
+
 end
 
 function kPMClient:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
     -- TODO: Implement time related functionaity
+
+    -- Update our freecam
+    if self.m_Freecam ~= nil then
+        self.m_Freecam:OnUpdate(p_DeltaTime, p_SimulationDeltaTime)
+    end
 end
 
 function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
@@ -163,7 +180,7 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     end
 
     if p_OldGameState == p_GameState then
-        print("warn: tried to transisition to the same gamestate wtf?")
+        print("warn: tried to transition to the same gamestate wtf?")
         return
     end
 
@@ -173,5 +190,15 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     -- Update the WebUI
     WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
 end
+
+function kPMClient:OnPlayerRespawn(p_Player)
+    -- Validate player
+    if p_Player == nil then
+        return
+    end
+
+    self.m_Freecam:OnLocalPlayerSpawned()
+end
+
 
 return kPMClient()
