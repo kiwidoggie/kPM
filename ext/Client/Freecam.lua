@@ -194,22 +194,22 @@ function FreeCam:OnUpdateInput(p_Delta)
 		return
 	end
 
-	--if self.m_Mode == CameraMode.FirstPerson or self.m_Mode == CameraMode.Editor then
-	--	return
-	--end
+	if self.m_Mode == CameraMode.FirstPerson or self.m_Mode == CameraMode.Editor then
+		return
+	end
 
 	-- Update the controls.
 	self:UpdateCameraControls(p_Delta)
 
 	-- Update FreeCam (or ThirdPerson.)
-	--if self.m_Mode == CameraMode.FreeCam then
+	if self.m_Mode == CameraMode.FreeCam then
 		self:UpdateFreeCamera(p_Delta)
-	--elseif self.m_Mode == CameraMode.Orbital then
-	--	self:UpdateThirdPerson(p_Delta)
-	--end
+	elseif self.m_Mode == CameraMode.Orbital then
+		self:UpdateThirdPerson(p_Delta)
+	end
 
 	if InputManager:WentKeyDown(InputDeviceKeys.IDK_F3) then
-		--print("Reseting camera")
+		print("Reseting camera")
 		self.m_CameraData.transform.left = Vec3(1,0,0)
 		self.m_CameraData.transform.up = Vec3(0,1,0)
 		self.m_CameraData.transform.forward = Vec3(0,0,1)
@@ -230,9 +230,9 @@ function FreeCam:OnUpdateInput(p_Delta)
 end
 
 function FreeCam:UpdateCameraControls(p_Delta)
-	--if self.m_Mode == CameraMode.FirstPerson then
-	--	return
-	--end
+	if self.m_Mode == CameraMode.FirstPerson then
+		return
+	end
 
 	local s_MoveX = InputManager:GetLevel(InputConceptIdentifiers.ConceptMoveLR)
 	local s_MoveY = 0.0
@@ -254,9 +254,6 @@ function FreeCam:UpdateCameraControls(p_Delta)
 		--print(self.m_RotationSpeedMultiplier)
 	end
 
-	if InputManager:WentKeyDown(InputDeviceKeys.IDK_F3) then
-
-	end
 	self.m_MoveX = self.m_MoveX + s_MoveX
 	self.m_MoveY = self.m_MoveY + s_MoveY
 	self.m_MoveZ = self.m_MoveZ + s_MoveZ

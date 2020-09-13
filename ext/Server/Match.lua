@@ -1,6 +1,6 @@
 local Match = class("Match")
 require ("__shared/GameStates")
-
+require ("__shared/kPMConfig")
 
 function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount)
     -- Save server reference
@@ -27,14 +27,27 @@ function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount)
     self.m_UpdateStates = { }
     self.m_UpdateStates[GameStates.Warmup] = self.OnWarmup
     self.m_UpdateStates[GameStates.WarmupToKnife] = self.OnWarmupToKnife
+    self.m_UpdateStates[GameStates.KnifeRound] = self.OnKnifeRound
+    self.m_UpdateStates[GameStates.KnifeToFirst] = self.OnKnifeToFirst
 
     -- State ticks
     self.m_UpdateTicks = { }
+    self.m_UpdateTicks[GameStates.None] = 0.0
+    self.m_UpdateTicks[GameStates.Warmup] = 0.0
+    self.m_UpdateTicks[GameStates.WarmupToKnife] = 0.0
+    self.m_UpdateTicks[GameStates.KnifeRound] = 0.0
+    self.m_UpdateTicks[GameStates.KnifeToFirst] = 0.0
+    self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
+    self.m_UpdateTicks[GameStates.FirstToHalf] = 0.0
+    self.m_UpdateTicks[GameStates.HalfTime] = 0.0
+    self.m_UpdateTicks[GameStates.HalfToSecond] = 0.0
+    self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+    self.m_UpdateTicks[GameStates.Timeout] = 0.0
+    self.m_UpdateTicks[GameStates.Strat] = 0.0
+    self.m_UpdateTicks[GameStates.NadeTraining] = 0.0
+    self.m_UpdateTicks[GameStates.EndGame] = 0.0
 
-    -- Initialize all states to 0.0
-    for i = 0, 1, GameStates.Max do
-        self.m_UpdateTicks[i] = 0.0
-    end
+    print("init: " .. self.m_UpdateTicks[GameStates.EndGame])
 end
 
 -- ==========
@@ -71,7 +84,7 @@ function Match:OnWarmup(p_DeltaTime)
             ChatManager:Yell("All players have readied up, starting knife round...", 2.0)
 
             -- Handle resetting all players or spawning them
-            self.m_Server:ChangeGameState(GameStates.KnifeRound)
+            self.m_Server:ChangeGameState(GameStates.WarmupToKnife)
         end
 
         -- Update status to all players
@@ -92,46 +105,16 @@ end
 function Match:OnWarmupToKnife(p_DeltaTime)
     -- TODO: Disable knife canned animations
 
-    -- Kill all alive players
-    local s_Players = PlayerManager:GetPlayers()
-    for l_Index, l_Player in ipairs(s_Players) do
-        -- Validate our player
-        if l_Player == nil then
-            goto _knife_continue_
-        end
-
-        -- Disable players ability to spawn
-        l_Player.isAllowedToSpawn = false
-
-        -- If the player is not alive skip on
-        if not l_Player.alive then
-            goto _knife_continue_
-        end
-
-        -- Get out soldier
-        local l_Soldier = l_Player.soldier
-        local l_Corpse = l_Player.corpse
-        local l_Name = l_Player.name
-
-        -- Validate our soldier
-        if l_Soldier ~= nil then
-            print("killing soldier " .. l_Name)
-            l_Soldier:Kill()
-        end
-
-        -- If the player is a corpse force dead
-        if l_Corpse ~= nil then
-            print("killing corpse " .. l_Name)
-            l_Corpse:ForceDead()
-        end
-
-        ::_knife_continue_::
-    end
-
+    -- Kill all players disabling their ability to spawn
+    self:KillAllPlayers(false)
 
     -- If we have reached the maximum time here
     if self.m_UpdateTicks[GameStates.WarmupToKnife] >= kPMConfig.MaxTransititionTime then
         self.m_UpdateTicks[GameStates.WarmupToKnife] = 0.0
+
+        if kPMConfig.DebugMode then
+            print("WarmupToKnife completed, switching to knife round")
+        end
 
         -- TODO: Force all players to respawn with a knife only kit
         -- TODO: Transitition to the next game state
@@ -142,17 +125,7 @@ function Match:OnWarmupToKnife(p_DeltaTime)
     self.m_UpdateTicks[GameStates.WarmupToKnife] = self.m_UpdateTicks[GameStates.WarmupToKnife] + p_DeltaTime
 end
 
-function Match:OnKnifeRound(p_DeltaTime)
-    if self.m_Attackers == nil then
-        print("could not find attackers")
-        return
-    end
-
-    if self.m_Defenders == nil then
-        print("could not find defenders")
-        return
-    end
-
+function Match:GetPlayerCounts()
     local s_AttackerAliveCount = 0
     local s_DefenderAliveCount = 0
 
@@ -198,6 +171,25 @@ function Match:OnKnifeRound(p_DeltaTime)
         ::_on_knife_round_continue_::
     end
 
+    return s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount
+end
+
+function Match:OnKnifeRound(p_DeltaTime)
+    if self.m_Attackers == nil then
+        print("could not find attackers")
+        return
+    end
+
+    if self.m_Defenders == nil then
+        print("could not find defenders")
+        return
+    end
+
+    local s_AttackerId = self.m_Attackers:GetTeamId()
+    local s_DefenderId = self.m_Defenders:GetTeamId()
+
+    local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
+
     -- Check the round state
     local s_Winner = TeamId.TeamNeutral
     if s_AttackerTotalCount > 0 and s_AttackerAliveCount == 0 then
@@ -219,13 +211,25 @@ function Match:OnKnifeRound(p_DeltaTime)
         end
 
         -- Change the game state to the first half
+        self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
+        return
+    end
+end
+
+function Match:OnKnifeToFirst(p_DeltaTime)
+    -- Kill all players before the first round
+    self:KillAllPlayers(false)
+
+    if self.m_UpdateTicks[GameStates.KnifeToFirst] > kPMConfig.MaxTransititionTime then
+        self.m_UpdateTicks[GameStates.KnifeToFirst] = 0.0
+
+        -- TODO: Spawn all players with their respective loadouts
+
         self.m_Server:ChangeGameState(GameStates.FirstHalf)
         return
     end
 
-    if s_AttackerAliveCount > s_DefenderAliveCount then
-        print("attackers win")
-    end
+    self.m_UpdateTicks[GameStates.KnifeToFirst] = self.m_UpdateTicks[GameStates.KnifeToFirst] + p_DeltaTime
 end
 
 -- Shamelessly stolen and modified from https://github.com/BF3RM
@@ -242,6 +246,81 @@ function Match:SwitchTeams()
 end
 
 function Match:OnFirstHalf(p_DeltaTime)
+    -- Handle the case of when a round first starts, otherwise it will run "normal" code
+    if self.m_UpdateTicks[GameStates.FirstHalf] == 0.0 then
+        -- Switch to strat time for 5 seconds
+
+        -- Kill all players
+        self:KillAllPlayers(false)
+
+        -- TODO: Respawn all players
+        
+        -- Manually update the ticks
+        self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
+
+        -- Switch to strat time, do not touch the FirstHalf timer, this ensures that we pick up "normal" round
+        self.m_Server:ChangeGameState(GameStates.Strat)
+    end
+
+    -- Get the player counts
+    local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
+
+    -- The round is running as expected, check the ending conditions
+
+    -- Which are if all attackers are dead
+    if s_AttackerAliveCount == 0 then
+        print("all attackers are dead, round is over")
+
+        -- Give a round to the defenders
+        self.m_Defenders:RoundWon(self.m_CurrentRound)
+
+        -- Give a loss to the attackers
+        self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+        -- Update the round count
+        self.m_CurrentRound = self.m_CurrentRound + 1
+
+        -- Set this round to be over
+        self.m_UpdateTicks[GameStates.FirstHalf] = kPMConfig.MaxRoundTime + 1.0
+        return
+    end
+    
+    -- TODO: If the objectives have been completed
+
+    -- If all defenders are dead
+    if s_DefenderAliveCount == 0 then
+        print("all defenders are dead, round is over")
+
+        -- Give a loss to the defenders
+        self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+        -- Give a win to the attackers
+        self.m_Attackers:RoundWon(self.m_CurrentRound)
+        return
+    end
+
+
+
+    -- If the round is over
+    if self.m_UpdateTicks[GameStates.FirstHalf] >= kPMConfig.MaxRoundTime then
+        self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
+
+        -- If the defenders have any players alive, they win, simple
+        if s_DefenderAliveCount > 0 then
+            self.m_Defenders:RoundWon(self.m_CurrentRound)
+            self.m_Attackers:RoundLoss(self.m_CurrentRound)
+        else
+            self.m_Attackers:RoundWon(self.m_CurrentRound)
+            self.m_Defenders:RoundLoss(self.m_CurrentRound)
+        end
+
+        -- Leave the timer at 0.0 in the same state, it will catch at the top
+        -- of this function and enable strat mode
+        return
+    end
+
+    -- Update the tick
+    self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
 end
 
 function Match:OnHalfTime(p_DeltaTime)
@@ -361,5 +440,51 @@ function Match:IsPlayerRup(p_PlayerId)
     return self.m_ReadyUpPlayers[s_PlayerId] == true
 end
 
+function Match:KillAllPlayers(p_IsAllowedToSpawn)
+    -- Kill all alive players
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        -- Validate our player
+        if l_Player == nil then
+            goto _knife_continue_
+        end
+
+        -- Kill the player
+        self:KillPlayer(l_Player, p_IsAllowedToSpawn)
+
+        ::_knife_continue_::
+    end
+end
+
+function Match:KillPlayer(p_Player, p_IsAllowedToSpawn)
+    if p_Player == nil then
+        return
+    end
+
+     -- Disable players ability to spawn
+     p_Player.isAllowedToSpawn = p_IsAllowedToSpawn
+
+     -- If the player is not alive skip on
+     if not p_Player.alive then
+         return
+     end
+
+     -- Get out soldier
+     local l_Soldier = p_Player.soldier
+     local l_Corpse = p_Player.corpse
+     local l_Name = p_Player.name
+
+     -- Validate our soldier
+     if l_Soldier ~= nil then
+         print("killing soldier " .. l_Name)
+         l_Soldier:Kill()
+     end
+
+     -- If the player is a corpse force dead
+     if l_Corpse ~= nil then
+         print("killing corpse " .. l_Name)
+         l_Corpse:ForceDead()
+     end
+end
 
 return Match

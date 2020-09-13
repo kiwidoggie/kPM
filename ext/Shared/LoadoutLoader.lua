@@ -36,7 +36,7 @@ function LoadoutLoader:OnPartitionLoaded(p_Partition)
             if s_SoldierBlueprint.name == "Characters/Soldiers/MpSoldier" then
                 -- Print out information in debug mode
                 if kPMConfig.DebugMode then
-                    print("MpSoldier Blueprint: " .. s_SoldierBlueprint.instanceGuid)
+                    print("MpSoldier Blueprint: " .. s_SoldierBlueprint.instanceGuid:ToString("N"))
                 end
 
                 -- Save our reference

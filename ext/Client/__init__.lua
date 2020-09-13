@@ -48,7 +48,7 @@ function kPMClient:OnExtensionLoaded()
     WebUI:Init()
 
     -- Show the WebUI
-    WebUI.Call('Show')
+    WebUI:Call('Show')
 end
 
 function kPMClient:OnExtensionUnloaded()
@@ -68,6 +68,7 @@ function kPMClient:RegisterEvents()
 
     -- Engine tick
     self.m_EngineUpdateEvent = Events:Subscribe("Engine:Update", self, self.OnEngineUpdate)
+    
 
     -- Game State events
     self.m_GameStateChangedEvent = NetEvents:Subscribe("kPM:GameStateChanged", self, self.OnGameStateChanged)
@@ -78,10 +79,11 @@ function kPMClient:RegisterEvents()
     -- Player Events
     self.m_PlayerRespawnEvent = Events:Subscribe("Player:Respawn", self, self.OnPlayerRespawn)
 
+    -- Level events
+    self.m_LevelDestroyEvent = Events:Subscribe("Level:Destroy", self, self.OnLevelDestroyed)
+
     -- Client events
-    self.m_ClientUpdateInputEvent = Events:Subscribe("Client:UpdateInput", self, self.OnUpdateInput)
-
-
+    self.m_ClientUpdateInputEvent = Events:Subscribe('Client:UpdateInput', self, self.OnUpdateInput)
 end
 
 function kPMClient:UnregisterEvents()
@@ -102,6 +104,37 @@ end
 
 function kPMClient:UnregisterCommands()
     print("unregistering commands")
+end
+
+function kPMClient:OnLevelDestroyed()
+    -- Handle cleanup when level is destroyed
+    if self.m_FreeCam ~= nil then
+        self.m_FreeCam:OnLevelDestroy()
+    end
+end
+
+function kPMClient:OnUpdateInput(p_DeltaTime)
+    -- Update the freecam
+    if self.m_FreeCam ~= nil then
+        self.m_FreeCam:OnUpdateInput(p_DeltaTime)
+    end
+
+    -- Manually check for toggles
+    if InputManager:WentKeyDown(InputDeviceKeys.IDK_F3) then
+        self.m_FreeCam:OnEnableFreeCamMovement()
+    end
+
+    if InputManager:WentKeyDown(InputDeviceKeys.IDK_F4) then
+
+    end
+
+    if InputManager:WentKeyDown(InputDeviceKeys.IDK_F5) then
+        self.m_FreeCam:OnControlStart()
+    end
+
+    if InputManager:WentKeyDown(InputDeviceKeys.IDK_F6) then
+        self.m_FreeCam:OnControlEnd()
+    end
 end
 
 function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
@@ -147,15 +180,15 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
         end
     end
 
+    -- Update the freecam
+    if self.m_FreeCam ~= nil then
+        self.m_FreeCam:OnUpdateInputHook(p_Hook, p_Cache, p_DeltaTime)
+    end
 end
 
 function kPMClient:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
     -- TODO: Implement time related functionaity
 
-    -- Update our freecam
-    if self.m_Freecam ~= nil then
-        self.m_Freecam:OnUpdate(p_DeltaTime, p_SimulationDeltaTime)
-    end
 end
 
 function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
@@ -197,7 +230,9 @@ function kPMClient:OnPlayerRespawn(p_Player)
         return
     end
 
-    self.m_Freecam:OnLocalPlayerSpawned()
+    if self.m_Freecam ~= nil then
+        self.m_Freecam:OnLocalPlayerSpawned()
+    end
 end
 
 

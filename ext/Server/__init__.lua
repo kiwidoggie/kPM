@@ -91,9 +91,9 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
             local l_Name = l_Player.name
 
             local l_ClanTag = ""
-            if l_Team == TeamId.Team1 then
+            if l_Team == self.m_Attackers:GetTeamId() then
                 l_ClanTag = self.m_Attackers:GetClanTag()
-            elseif l_Team == TeamId.Team2 then
+            elseif l_Team == self.m_Defenders:GetTeamId() then
                 l_ClanTag = self.m_Defenders:GetClanTag()
             end
 
@@ -274,14 +274,12 @@ function kPMServer:OnPlayerChat(p_Player, p_RecipientMask, p_Message)
     end
 
     -- Check for ready up state
-    if Utils.starts_with(p_Message, "!rup") then
-    end
-
     if Utils.starts_with(p_Message, "!warmup") then
         self:ChangeGameState(GameStates.Warmup)
     end
 
-    if Utils.starts_with(p_Message, "!first") then
+    if Utils.starts_with(p_Message, "!warmuptoknife") then
+
     end
 end
 
@@ -299,8 +297,6 @@ function kPMServer:ChangeGameState(p_GameState)
 
     local s_OldGameState = self.m_GameState
     self.m_GameState = p_GameState
-
-    self.m_Match:OnTransition(s_OldGameState, p_GameState)
 
     NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
 end

@@ -3,7 +3,7 @@ kPMConfig =
     -- ==========
     -- Debug mode options
     -- ==========
-    DebugMode = false,
+    DebugMode = true,
 
     -- ==========
     -- Client configuration options
@@ -45,4 +45,7 @@ kPMConfig =
 
     -- Maximum transitition time between gamestates (default: 2 seconds)
     MaxTransititionTime = 2.0,
+
+    -- Round time (default: 10 minutes)
+    MaxRoundTime = 600.0,
 }
