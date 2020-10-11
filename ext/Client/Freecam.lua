@@ -1,6 +1,6 @@
 class 'FreeCam'
 
-local m_RotationHelper = require "__shared/Util/RotationHelper"
+require ("__shared/Util/RotationHelper")
 
 CameraMode = {
 	FirstPerson = 1,
@@ -76,7 +76,7 @@ end
 
 function FreeCam:UpdateFreeCamVars()
 
-    local s_Yaw, s_Pitch, s_Roll = m_RotationHelper:GetYPRfromLUF(
+    local s_Yaw, s_Pitch, s_Roll = RotationHelper:GetYPRfromLUF(
 			self.m_CameraData.transform.left,
 			self.m_CameraData.transform.up,
 			self.m_CameraData.transform.forward)

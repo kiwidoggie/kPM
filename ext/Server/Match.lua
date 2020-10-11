@@ -69,7 +69,7 @@ function Match:OnEngineUpdate(p_GameState, p_DeltaTime)
 
     self.m_CurrentState = p_GameState
 
-    s_Callback(p_DeltaTime)
+    s_Callback(self, p_DeltaTime)
 end
 
 function Match:OnWarmup(p_DeltaTime)

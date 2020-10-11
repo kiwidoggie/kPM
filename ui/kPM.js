@@ -25,14 +25,18 @@ const GameStates =
 {
     None: 0,
     Warmup: 1,
-    KnifeRound: 2,
-    FirstHalf: 3,
-    HalfTime: 4,
-    SecondHalf: 5,
-    Timeout: 6,
-    Strat: 7,
-    NadeTraining: 8,
-    EndGame: 9
+    WarmupToKnife: 2,
+    KnifeRound: 3,
+    KnifeToFirst: 4,
+    FirstHalf: 5,
+    FirstToHalf: 6,
+    HalfTime: 7,
+    HalfToSecond: 8,
+    SecondHalf: 9,
+    Timeout: 10,
+    Strat: 11,
+    NadeTraining: 12,
+    EndGame: 13
 }
 
 /**
@@ -44,9 +48,13 @@ const GameStatesPages =
 {
     None: "_invalid_id",
     Warmup: "page_warmup",
+    WarmupToKnife: "page_warmuptoknife",
     KnifeRound: "page_kniferound",
+    KnifeToFirst: "page_knifetofirst",
     FirstHalf: "page_firsthalf",
+    FirstToHalf: "page_firsttohalf",
     HalfTime: "page_halftime",
+    HalfToSecond: "page_halftosecond",
     SecondHalf: "page_secondhalf",
     Timeout: "page_timeout",
     Start: "page_strat",

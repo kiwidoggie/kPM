@@ -30,7 +30,7 @@ function kPMClient:__init()
     self.m_GameState = GameStates.None
 
     -- Freecamera
-    self.m_Freecam = FreeCam()
+    self.m_FreeCam = FreeCam()
 end
 
 -- ==========
@@ -121,6 +121,7 @@ function kPMClient:OnUpdateInput(p_DeltaTime)
 
     -- Manually check for toggles
     if InputManager:WentKeyDown(InputDeviceKeys.IDK_F3) then
+        print("enabling freecam movement")
         self.m_FreeCam:OnEnableFreeCamMovement()
     end
 
@@ -129,10 +130,12 @@ function kPMClient:OnUpdateInput(p_DeltaTime)
     end
 
     if InputManager:WentKeyDown(InputDeviceKeys.IDK_F5) then
+        print("control start")
         self.m_FreeCam:OnControlStart()
     end
 
     if InputManager:WentKeyDown(InputDeviceKeys.IDK_F6) then
+        print("control end")
         self.m_FreeCam:OnControlEnd()
     end
 end
@@ -202,7 +205,7 @@ function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
         return
     end
 
-    WebUI:ExecuteJS("UpdateRupStatus(" .. p_WaitingOnPlayers .. ", " .. p_LocalRupStatus .. ");")
+    WebUI:ExecuteJS("UpdateRupStatus(" .. p_WaitingOnPlayers.tostring() .. ", " .. p_LocalRupStatus.tostring() .. ");")
 end
 
 function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
@@ -230,9 +233,6 @@ function kPMClient:OnPlayerRespawn(p_Player)
         return
     end
 
-    if self.m_Freecam ~= nil then
-        self.m_Freecam:OnLocalPlayerSpawned()
-    end
 end
 
 
