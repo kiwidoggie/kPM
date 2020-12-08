@@ -12,6 +12,9 @@ kPMConfig =
     -- Maximum Ready up time
     MaxReadyUpTime = 0.5,
 
+    -- Maximum Plant time
+    PlantTime = 5.0,
+
     -- When up tick rup game logic
     MaxRupTick = 1.0,
 
@@ -38,7 +41,7 @@ kPMConfig =
     MinClanTagLength = 1,
 
     -- Maximum strat time (default: 5 seconds)
-    MaxStratTime = 5.0,
+    MaxStratTime = 10.0,
 
     -- Maximum knife round time (default: 5 minutes)
     MaxKnifeRoundTime = 300.0,

@@ -5,7 +5,9 @@ require ("__shared/GameStates")
 require ("__shared/Utils")
 
 require ("Team")
+require ("WeaponDefinitions")
 require ("LoadoutManager")
+require ("LoadoutDefinitions")
 require ("Match")
 
 function kPMServer:__init()
@@ -21,8 +23,11 @@ function kPMServer:__init()
     self.m_Attackers = Team(TeamId.Team1, "Attackers", "nK")
     self.m_Defenders = Team(TeamId.Team2, "Defenders", "mTw")
 
+    -- Loadout manager
+    self.m_LoadoutManager = LoadoutManager()
+
     -- Create a new match
-    self.m_Match = Match(self, self.m_Attackers, self.m_Defenders, kPMConfig.MatchDefaultRounds)
+    self.m_Match = Match(self, self.m_Attackers, self.m_Defenders, kPMConfig.MatchDefaultRounds, self.m_LoadoutManager)
 
     -- Ready up tick
     self.m_RupTick = 0.0
@@ -32,9 +37,6 @@ function kPMServer:__init()
 
     -- Match management
     self.m_AllowedGuids = { }
-
-    -- Loadout manager
-    self.m_LoadoutManager = LoadoutManager()
 
     -- Callbacks
     self.m_MatchStateCallbacks = { }
@@ -58,10 +60,18 @@ function kPMServer:RegisterEvents()
     
     -- Damage hooks
     self.m_SoldierDamageHook = Hooks:Install("Soldier:Damage", 1, self, self.OnSoldierDamage)
-    self.m_ServerSuppressEnemies = Hooks:Install("Server:SupressEnemies", 1, self, self.OnServerSuppressEnemies)
+    
+    -- Replaced by the vu.SuppressionMultiplier 0 server command
+    -- should also use vu.SunFlareEnabled 0
+    -- + vu.DestructionEnabled 0 too, IDK
+    -- + vu.ColorCorrectionEnabled 0
+    --self.m_ServerSuppressEnemies = Hooks:Install("Server:SupressEnemies", 1, self, self.OnServerSuppressEnemies)
 
     -- Events from the client
     self.m_ToggleRupEvent = NetEvents:Subscribe("kPM:ToggleRup", self, self.OnToggleRup)
+    self.m_PlayerConnectedEvent = NetEvents:Subscribe("kPM:PlayerConnected", self, self.OnPlayerConnected)
+    self.m_PlayerSetSelectedTeamEvent = NetEvents:Subscribe("kPM:PlayerSetSelectedTeam", self, self.OnPlayerSetSelectedTeam)
+    self.m_PlayerSetSelectedKitEvent = NetEvents:Subscribe("kPM:PlayerSetSelectedKit", self, self.OnPlayerSetSelectedKit)
 
     -- Chat events
     self.m_PlayerChatEvent = Events:Subscribe("Player:Chat", self, self.OnPlayerChat)
@@ -179,7 +189,7 @@ function kPMServer:UpdateAllowedGuids()
 
         -- Debug logging
         if kPMConfig.DebugMode then
-            print("added player: " .. l_Player.name .. " guid: " .. l_Player.accountGuid .. " to the allow list.")
+            print("added player: " .. tostring(l_Player.name) .. " guid: " .. tostring(l_Player.accountGuid) .. " to the allow list.")
         end
 
         -- Lua does not have continue statement, so this hack is a workaround
@@ -192,8 +202,67 @@ function kPMServer:OnPlayerJoining(p_Name, p_Guid, p_IpAddress, p_AccountGuid)
     print("info: player " .. p_Name .. " is joining the server")
 end
 
+function kPMServer:OnPlayerConnected(p_Player)
+    if p_Player == nil then
+        print("err: invalid player tried to connect.")
+        return
+    end
+
+    -- Send out gamestate information if he reconnects
+    NetEvents:SendTo("kPM:GameStateChanged", p_Player, GameStates.None, self.m_GameState)
+end
+
 function kPMServer:OnPlayerLeft(p_Player)
     print("info: player " .. p_Player.name .. " has left the server")
+end
+
+function kPMServer:OnPlayerSetSelectedTeam(p_Player, p_Team)
+    if p_Player == nil or p_Team == nil then
+        return
+    end
+    
+    if self.m_GameState == GameStates.None or 
+    self.m_GameState == GameStates.Warmup or 
+    self.m_GameState == GameStates.NadeTraining or 
+    p_Player.teamId == TeamId.TeamNeutral then
+        print("info: player " .. p_Player.name .. " has selected " .. p_Team .." team")
+        p_Player.teamId = p_Team;
+    else
+        print("info: player " .. p_Player.name .. " can't change team during the match")
+    end
+end
+
+function kPMServer:OnPlayerSetSelectedKit(p_Player, p_Data)
+    if p_Player == nil or p_Data == nil then
+        return
+    end
+
+    local l_Data = json.decode(p_Data)
+
+    if Kits[l_Data["class"]] == nil then
+        print("err: invalid kit.")
+        return
+    end
+    
+    self.m_LoadoutManager:SetPlayerLoadout(p_Player, l_Data)
+
+    if self.m_GameState == GameStates.Warmup or self.m_GameState == GameStates.None then
+        -- If the current gamestate is Warmup or None we can switch kit instantly
+        local l_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
+
+        if p_Player.soldier ~= nil then
+            self.m_Match:KillPlayer(p_Player, false)
+        end
+
+        self.m_Match:SpawnPlayer(
+            p_Player, 
+            self.m_Match:GetRandomSpawnpoint(p_Player), 
+            CharacterPoseType.CharacterPoseType_Stand, 
+            l_SoldierBlueprint, 
+            false,
+            self.m_LoadoutManager:GetPlayerLoadout(p_Player)
+        )
+    end
 end
 
 function kPMServer:OnPlayerFindBestSquad(p_Hook, p_Player)
@@ -224,16 +293,16 @@ function kPMServer:OnSoldierDamage(p_Hook, p_Soldier, p_Info, p_GiverInfo)
         return
     end
 
+    -- TODO: Fixme
     -- If we are in warmup, then disable damage of all kind
     if self.m_GameState == GameStates.None or self.m_GameState == GameStates.Warmup then
+        if p_GiverInfo.giver == nil or p_GiverInfo.damageType == DamageType.Suicide then
+            return
+        end
+
         p_Info.damage = 0.0
         p_Hook:Pass(p_Soldier, p_Info, p_GiverInfo)
     end
-end
-
-function kPMServer:OnServerSuppressEnemies(p_Hook, p_SupressionMultiplier)
-    -- Man if you don't get this bullshit outa here
-    p_SupressionMultiplier = 0.0
 end
 
 function kPMServer:OnToggleRup(p_Player)
@@ -298,14 +367,12 @@ function kPMServer:ChangeGameState(p_GameState)
     local s_OldGameState = self.m_GameState
     self.m_GameState = p_GameState
 
-    NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
-end
-
-function kPMServer:SpawnPlayer(p_Player)
-    -- Validate our player
-    if p_Player == nil then
-        return
+    -- Call UpdateAllowedGuids when Warmup ends
+    if p_GameState > 1 then
+        self:UpdateAllowedGuids()
     end
+
+    NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
 end
 
 return kPMServer()

@@ -1,77 +1,53 @@
-g_USKits = {
+Kits = {
+    -- Moved all kit related stuff to the UI side:
+    -- kPM/ui/src/helpers/Kits.tsx
+    
     Assault = {
-        -- Name/Display Name of this class
-        name = "Assault",
-
-        -- The headgear for this class
-        headGear = "us_helmet08",
-
-        -- Head for the class
-        head = "sp_campo",
-
-        -- Upper body model
-        upperBody = "us_upperbody04",
-
-        -- Lower body model
-        lowerBody = "us_lowerbody03",
-
-        -- How many of these can be on a team
-        teamLimitation = 127,
-
-        -- The weapon loadout
-        weapons = {
-            [1] = {
-                type = WeaponDefinitions.AK74M,
-                magazineCount = 9,
-                optics = { WeaponAttachments.IronSights },
-                underRailAttachments = { WeaponAttachments.AK47M.Foregrip }
-            },
-            [2] = {
-                type = WeaponDefinitions.M9,
-                magazineCount = 3
-            },
-            [4] = {
-                type = WeaponDefinitions.Knife
-            },
-            [5] = {
-                type = WeaponDefinitions.Grenade,
-                magazineCount = 1
-            },
-            [6] = {
-                type = WeaponDefinitions.Flashbang,
-                magazineCount = 1
-            }
+        NAME = "Assault",
+        LIMIT = 127,
+        ATTACKER = {
+            KIT = 'Gameplay/Kits/RUAssault',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/RU/MP_RU_Assault_Appearance_Ranger',
         },
-        orderId = 1
+        DEFENDER = {
+            KIT = 'Gameplay/Kits/USAssault',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/Us/MP_US_Assault_Appearance_Ranger',
+        },
     },
     SpecOps = {
-        name = "SpecOps",
-        headGear = "us_helmet08",
-        head = "sp_campo",
-        upperBody = "us_upperbody04",
-        lowerBody = "us_lowerbody03",
-        teamLimitation = 2,
-
-        weapons = {
-            [1] = {
-                type = WeaponDefinitions.AKS74u,
-                magazineCount = 9,
-                optics = { WeaponAttachments.IronSights },
-                underRailAttachments = { WeaponAttachments.AKS74u.Foregrip }
-            },
-            [2] = {
-                type = WeaponDefinitions.M9,
-                magazineCount = 3
-            }
-        }
+        NAME = "SpecOps",
+        LIMIT = 127,
+        ATTACKER = {
+            KIT = 'Gameplay/Kits/RUSupport',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/RU/MP_RU_Support_Appearance_Ninja',
+        },
+        DEFENDER = {
+            KIT = 'Gameplay/Kits/USSupport',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/Us/MP_US_Support_Appearance_Ninja',
+        },
     },
-    Demo = {
-
+    Demolition = {
+        NAME = "Demolition",
+        LIMIT = 2,
+        ATTACKER = {
+            KIT = 'Gameplay/Kits/RUEngineer',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/RU/MP_RU_Engi_Appearance_Urban',
+        },
+        DEFENDER = {
+            KIT = 'Gameplay/Kits/USEngineer',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/Us/MP_US_Engi_Appearance_Urban',
+        },
     },
     Sniper = {
-
+        NAME = "Sniper",
+        LIMIT = 2,
+        ATTACKER = {
+            KIT = 'Gameplay/Kits/RURecon',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/RU/MP_RU_Recon_Appearance_Urban',
+        },
+        DEFENDER = {
+            KIT = 'Gameplay/Kits/USRecon',
+            APPEARANCE = 'Persistence/Unlocks/Soldiers/Visual/MP/Us/MP_US_Recon_Appearance_Urban',
+        },
     },
-    Debug = {
-
-    }
 }

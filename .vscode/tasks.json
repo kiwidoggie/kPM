@@ -1,0 +1,11 @@
+{
+    "version": "1.0.0",
+    "tasks": [
+        {
+            "label": "Build WebUI with VUICC",
+            "type": "shell",
+            "command": "vuicc \"./ui/build\" \"./ui.vuic\"",
+            "problemMatcher": []
+        }
+    ]
+}
