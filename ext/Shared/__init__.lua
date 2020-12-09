@@ -1,6 +1,7 @@
 class "kPMShared"
 
 require("__shared/MapsConfig")
+require ("__shared/LevelNameHelper")
 
 function kPMShared:__init()
     print("shared initialization")
@@ -40,11 +41,11 @@ end
 function kPMShared:OnLevelLoaded(p_LevelName, p_GameMode)
     print("spawn map specific stuff")
     
-    self:SpawnPlants(self.GetLevelConfigName())
+    self:SpawnPlants(LevelNameHelper:GetLevelName())
 end
 
 function kPMShared:OnPartitionLoaded(partition)
-    local l_LevelName = self.GetLevelConfigName()
+    local l_LevelName = LevelNameHelper:GetLevelName()
 
     if l_LevelName ~= nil then
         if partition.guid == MapsConfig[l_LevelName]["EFFECTS_WORLD_PART_DATA"]["PARTITION"] then
@@ -62,21 +63,6 @@ function kPMShared:OnPartitionLoaded(partition)
             end
         end
     end
-end
-
-function kPMShared:GetLevelConfigName()
-    local l_LevelName = nil
-    local l_tempLevelName = SharedUtils:GetLevelName()
-    
-    if l_tempLevelName == nil then
-        return nil
-    end
-
-    for word in string.gmatch(l_tempLevelName, '([^/]+)') do
-        l_LevelName = word
-    end
-
-    return l_LevelName
 end
 
 -- ==========

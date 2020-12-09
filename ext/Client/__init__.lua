@@ -6,6 +6,7 @@ require("UICleanup")
 require("__shared/GameStates")
 require("__shared/kPMConfig")
 require("__shared/MapsConfig")
+require("__shared/LevelNameHelper")
 
 function kPMClient:__init()
     -- Start the client initialization
@@ -370,9 +371,9 @@ function kPMClient:OnPlayerDeleted(p_Player)
 end
 
 function kPMClient:IsPlayerInsideThePlantZone()
-    local l_LevelName = nil
-    for word in string.gmatch(SharedUtils:GetLevelName(), '([^/]+)') do
-        l_LevelName = word
+    local l_LevelName = LevelNameHelper:GetLevelName()
+    if l_LevelName == nil then
+        return false
     end
 
     local localPlayer = PlayerManager:GetLocalPlayer()

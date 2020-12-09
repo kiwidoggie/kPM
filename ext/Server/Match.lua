@@ -4,6 +4,7 @@ require ("__shared/GameStates")
 require ("__shared/kPMConfig")
 require ("LoadoutManager")
 require ("LoadoutDefinitions")
+require ("__shared/LevelNameHelper")
 
 function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager)
     -- Save server reference
@@ -629,9 +630,10 @@ function Match:GetRandomSpawnpoint(p_Player)
         return
     end
 
-    local l_LevelName = nil
-    for word in string.gmatch(SharedUtils:GetLevelName(), '([^/]+)') do
-        l_LevelName = word
+    local l_LevelName = LevelNameHelper:GetLevelName()
+    if l_LevelName == nil then
+        print("err: no level??")
+        return
     end
 
     -- TODO: Don't spawn on an already taken spawnpoint
