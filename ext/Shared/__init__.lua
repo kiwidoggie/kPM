@@ -30,6 +30,7 @@ function kPMShared:RegisterEvents()
 
     -- Level events
     self.m_LevelLoadedEvent = Events:Subscribe("Level:Loaded", self, self.OnLevelLoaded)
+    self.m_PartitionLoaded = Events:Subscribe("Partition:Loaded", self, self.OnPartitionLoaded)
 end
 
 function kPMShared:UnregisterEvents()
@@ -38,13 +39,44 @@ end
 
 function kPMShared:OnLevelLoaded(p_LevelName, p_GameMode)
     print("spawn map specific stuff")
+    
+    self:SpawnPlants(self.GetLevelConfigName())
+end
 
+function kPMShared:OnPartitionLoaded(partition)
+    local l_LevelName = self.GetLevelConfigName()
+
+    if l_LevelName ~= nil then
+        if partition.guid == MapsConfig[l_LevelName]["EFFECTS_WORLD_PART_DATA"]["PARTITION"] then
+            for _, instance in pairs(partition.instances) do
+                if instance.instanceGuid == MapsConfig[l_LevelName]["EFFECTS_WORLD_PART_DATA"]["INSTANCE"] then
+                    local l_EffectsWorldData = WorldPartData(instance)
+                    for _, object in pairs(l_EffectsWorldData.objects) do
+                        if object:Is("EffectReferenceObjectData") then
+                            local effectReferenceObjectData = EffectReferenceObjectData(object)
+                            effectReferenceObjectData:MakeWritable()
+                            effectReferenceObjectData.excluded = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+function kPMShared:GetLevelConfigName()
     local l_LevelName = nil
-    for word in string.gmatch(SharedUtils:GetLevelName(), '([^/]+)') do
+    local l_tempLevelName = SharedUtils:GetLevelName()
+    
+    if l_tempLevelName == nil then
+        return nil
+    end
+
+    for word in string.gmatch(l_tempLevelName, '([^/]+)') do
         l_LevelName = word
     end
-    
-    self:SpawnPlants(l_LevelName)
+
+    return l_LevelName
 end
 
 -- ==========
@@ -65,8 +97,6 @@ function kPMShared:SpawnPlants(p_LevelName)
     if p_LevelName == nil then
         return
     end
-
-    print("spawning plants")
     
     self:SpawnPlant(MapsConfig[p_LevelName]["PLANT_A"]["POS"], "A")
     self:SpawnPlant(MapsConfig[p_LevelName]["PLANT_B"]["POS"], "B")

@@ -88,5 +88,10 @@ MapsConfig =
             ),
             RADIUS = 7,
         },
+
+        EFFECTS_WORLD_PART_DATA = {
+            PARTITION = Guid('7B7B690B-9530-4AD0-8EC1-3DC1991D9400'),
+            INSTANCE = Guid('3AB827D0-FE7C-451F-ADA1-A28068D4CA03'),
+        },
     }
 }
