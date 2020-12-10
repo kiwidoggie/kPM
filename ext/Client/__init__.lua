@@ -31,6 +31,10 @@ function kPMClient:__init()
 
     -- Plant Inputs
     self.m_PlantHeldTime = 0.0
+
+    -- Tab / Scoreboard Inputs
+    self.m_TabHeldTime = 0.0
+    self.m_ScoreboardActive = false
     
     -- The current gamestate, this is read-only and should only be changed by the SERVER
     self.m_GameState = GameStates.None
@@ -79,6 +83,12 @@ function kPMClient:RegisterEvents()
 
     -- Ready Up State Update
     self.m_RupStateEvent = NetEvents:Subscribe("kPM:RupStateChanged", self, self.OnRupStateChanged)
+
+    -- Update ping table
+    self.m_PlayerPing = NetEvents:Subscribe('Player:Ping', self, self.OnPlayerPing)
+    self.m_PingTable = {}
+
+    self.m_UIPushScreen = Hooks:Install('UI:PushScreen', 1, self, self.OnUIPushScreen)
 
     -- Player Events
     self.m_PlayerRespawnEvent = Events:Subscribe("Player:Respawn", self, self.OnPlayerRespawn)
@@ -202,6 +212,9 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
         return
     end
 
+    -- Tab held or not
+    self:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
+
     -- Check to see if we are in the warmup state to get rup status
     if self.m_GameState == GameStates.Warmup then
         -- Get the interact level
@@ -281,6 +294,43 @@ function kPMClient:OnInputPreUpdate(p_Hook, p_Cache, p_DeltaTime)
     end
 end
 
+function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
+    -- Get the interact level
+    local s_InteractLevel = p_Cache:GetLevel(InputConceptIdentifiers.ConceptScoreboard)
+
+    local l_ScoreboardActive = self.m_ScoreboardActive
+
+    local l_Player = PlayerManager:GetLocalPlayer()
+
+    -- If the player is holding the interact key then update our variables and clear it for the next frame
+    if s_InteractLevel > 0.0 then
+        l_ScoreboardActive = true
+        self.m_TabHeldTime = self.m_TabHeldTime + p_DeltaTime
+        p_Cache:SetLevel(InputConceptIdentifiers.ConceptScoreboard, 0.0)
+    else
+        self.m_TabHeldTime = 0.0
+        l_ScoreboardActive = false
+    end
+
+    if self.m_TabHeldTime >= 2.0 then
+        self:OnUpdateScoreboard(l_Player)
+
+        -- Reset our timer
+        self.m_TabHeldTime = 0.0
+    end
+
+
+    if self.m_ScoreboardActive ~= l_ScoreboardActive then
+        self.m_ScoreboardActive = l_ScoreboardActive
+
+        if l_ScoreboardActive == true then
+            self:OnUpdateScoreboard(l_Player)
+        end
+
+        WebUI:ExecuteJS("OpenCloseScoreboard()")
+    end
+end
+
 function kPMClient:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
     -- TODO: Implement time related functionaity
     
@@ -298,6 +348,20 @@ function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
     end
 
     WebUI:ExecuteJS("UpdateRupStatus(" .. tostring(p_WaitingOnPlayers) .. ", " .. tostring(p_LocalRupStatus) .. ");")
+end
+
+function kPMClient:OnUIPushScreen(hook, screen, graphPriority, parentGraph)
+    local screen = UIGraphAsset(screen)
+    if screen.name == 'UI/Flow/Screen/Scoreboards/ScoreboardTwoTeamsScreen' or
+        screen.name == 'UI/Flow/Screen/Scoreboards/ScoreboardTwoTeamsHUD32Screen'
+    then
+        hook:Return(nil)
+        return
+    end
+end
+
+function kPMClient:OnPlayerPing(p_PingTable)
+    self.m_PingTable = p_PingTable
 end
 
 function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
@@ -318,6 +382,63 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
 
     -- Update the WebUI
     WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
+end
+
+function kPMClient:OnUpdateScoreboard(player)
+    print("OnUpdateScoreboard")
+
+    local l_DefendersId = TeamId.Team1
+    local l_AttackersId = TeamId.Team2
+
+    local l_PlayerListDefenders = PlayerManager:GetPlayersByTeam(l_DefendersId)
+    local l_PlayerListAttackers = PlayerManager:GetPlayersByTeam(l_AttackersId)
+
+    table.sort(l_PlayerListDefenders, function(a, b) 
+		return a.score > b.score
+    end)
+    
+    table.sort(l_PlayerListAttackers, function(a, b) 
+		return a.score > b.score
+    end)
+
+    local playersObject = {}
+    playersObject[l_DefendersId] = {}
+    playersObject[l_AttackersId] = {}
+    
+    for index, player in pairs(l_PlayerListDefenders) do
+		local ping = "0"
+		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
+			ping = self.m_PingTable[player.id]
+        end
+        
+		table.insert(playersObject[l_DefendersId], {
+            ["id"] = player.id, 
+            ["name"] = player.name, 
+            ["ping"] = ping,
+            ["kill"] = player.kills, 
+            ["death"] = player.deaths, 
+            ["isDead"] = not player.alive
+        })
+    end
+
+
+    for index, player in pairs(l_PlayerListAttackers) do
+		local ping = "0"
+		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
+			ping = self.m_PingTable[player.id]
+        end
+        
+		table.insert(playersObject[l_AttackersId], {
+            ["id"] = player.id, 
+            ["name"] = player.name, 
+            ["ping"] = ping,
+            ["kill"] = player.kills, 
+            ["death"] = player.deaths, 
+            ["isDead"] = not player.alive
+        })
+    end
+    
+    WebUI:ExecuteJS(string.format("UpdatePlayers(%s)", json.encode(playersObject)))
 end
 
 function kPMClient:OnCleanup(p_EntityType)

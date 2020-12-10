@@ -32,18 +32,18 @@ const Header: React.FC<Props> = ({ teamAttackersClan, teamDefendersClan, teamAtt
                     }
                     <div id="score">
                         <div id="scoreAttackers">
-                            <span id="team">Attackers</span>
-                            <span id="points">{teamAttackersScore??0}</span>
+                            {/*<span id="team">Attackers</span>*/}
+                            <span className="points">{teamAttackersScore??0}</span>
                         </div>
                         <div id="roundTimer">
-                            <span id="timer">00:00</span>
-                            <span id="round">
+                            <span className="timer">00:00</span>
+                            <span className="round">
                                 {GameStatesRoundString[currentScene].replace('{round}', (round??'0'))??''}
                             </span>
                         </div>
                         <div id="scoreDefenders">
-                            <span id="team">Defenders</span>
-                            <span id="points">{teamDefendersScore??0}</span>
+                            {/*<span id="team">Defenders</span>*/}
+                            <span className="points">{teamDefendersScore??0}</span>
                         </div>
                     </div>
                     {teamDefendersClan 

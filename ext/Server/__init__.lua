@@ -93,6 +93,8 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
         -- Reset the name tick
         self.m_NameTick = 0.0
 
+        local l_PingTable = {}
+
         -- Iterate all players
         local s_Players = PlayerManager:GetPlayers()
         for l_Index, l_Player in ipairs(s_Players) do
@@ -123,6 +125,8 @@ function kPMServer:OnEngineUpdate(p_DeltaTime, p_SimulationDeltaTime)
                 end
             end
 
+            l_PingTable[l_Player.id] = l_Player.ping
+            NetEvents:Broadcast('Player:Ping', l_PingTable)
         end
     end
     self.m_NameTick = self.m_NameTick + p_DeltaTime
