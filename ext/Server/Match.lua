@@ -404,6 +404,8 @@ function Match:OnPlayerRup(p_Player)
         print("info: player " .. p_Player.name .. " unready up :(")
         return
     end
+    
+    NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
 end
 
 function Match:IsAllPlayersRup()

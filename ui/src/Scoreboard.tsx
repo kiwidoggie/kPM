@@ -1,5 +1,6 @@
 import React from "react";
 import ScoreboardTeam from "./components/ScoreboardTeam";
+import { GameStates } from "./helpers/GameStates";
 import { Players } from "./helpers/Player";
 import { Teams } from "./helpers/Teams";
 
@@ -10,15 +11,16 @@ interface Props {
     teamAttackersScore: number;
     teamDefendersScore: number;
     players: Players;
+    gameState: GameStates;
 }
 
-const Scoreboard: React.FC<Props> = ({ showScoreboard, teamAttackersScore, teamDefendersScore, players }) => {
+const Scoreboard: React.FC<Props> = ({ showScoreboard, teamAttackersScore, teamDefendersScore, players, gameState }) => {
     return (
         <>
             {showScoreboard &&
                 <div id="inGameScoreboard" className="fadeInBottom">
-                    <ScoreboardTeam team={Teams.Attackers} score={teamAttackersScore} players={players[Teams.Attackers]} />
-                    <ScoreboardTeam team={Teams.Defenders} score={teamDefendersScore} players={players[Teams.Defenders]} />
+                    <ScoreboardTeam team={Teams.Attackers} score={teamAttackersScore} players={players[Teams.Attackers]} gameState={gameState} />
+                    <ScoreboardTeam team={Teams.Defenders} score={teamDefendersScore} players={players[Teams.Defenders]} gameState={gameState} />
                 </div>
             }
         </>

@@ -18,6 +18,16 @@ import './Global.scss';
 
 const App: React.FC = () => {
     /*
+    * Debug
+    */
+    let debugMode: boolean = false;
+    if (!navigator.userAgent.includes('VeniceUnleashed')) {
+        if (window.location.ancestorOrigins === undefined || window.location.ancestorOrigins[0] !== 'webui://main') {
+            debugMode = true;
+        }
+    }
+
+    /*
     * Local States
     */
     const [scene, setScene] = useState<GameStates>(GameStates.None);
@@ -112,6 +122,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -119,6 +130,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: true,
+                    isReady: false,
                 },
                 {
                     name: 'Attacker',
@@ -126,6 +138,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -133,6 +146,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -140,6 +154,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -147,6 +162,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -154,6 +170,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -161,6 +178,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: true,
+                    isReady: true,
                 },
                 {
                     name: 'Attacker',
@@ -168,6 +186,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: false,
                 },
                 {
                     name: 'Attacker',
@@ -175,6 +194,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: false,
                 },
                 {
                     name: 'Attacker',
@@ -182,6 +202,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: false,
                 },
             ],
             [Teams.Defenders]: [
@@ -191,6 +212,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: true,
+                    isReady: false,
                 },
                 {
                     name: 'Defender',
@@ -198,6 +220,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: false,
                 },
                 {
                     name: 'Defender',
@@ -205,6 +228,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Defender',
@@ -212,6 +236,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Defender',
@@ -219,6 +244,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: true,
                 },
                 {
                     name: 'Defender',
@@ -226,6 +252,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: true,
+                    isReady: true,
                 },
                 {
                     name: 'Defender',
@@ -233,6 +260,7 @@ const App: React.FC = () => {
                     kill: 10,
                     death: 10,
                     isDead: false,
+                    isReady: false,
                 },
             ],
         });
@@ -270,8 +298,15 @@ const App: React.FC = () => {
 
     return (
         <div className="App">
-
-            {/* TODO: Delete me */}
+            
+            {debugMode &&
+                <style dangerouslySetInnerHTML={{__html: `
+                    #debug {
+                        display: block !important;
+                    }
+                `}} />
+            }
+            
             <div id="debug" className="global">
                 <button onClick={() => setScene(GameStates.Warmup)}>Warmup</button>
                 <button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>
@@ -307,7 +342,7 @@ const App: React.FC = () => {
                     show={showLoadoutPage}
                     setShowLoadoutPage={(show) => setShowLoadoutPage(show)}
                 />
-                <Scoreboard showScoreboard={showScoreboard} teamAttackersScore={teamAttackersScore} teamDefendersScore={teamDefendersScore} players={players} />
+                <Scoreboard showScoreboard={showScoreboard} teamAttackersScore={teamAttackersScore} teamDefendersScore={teamDefendersScore} players={players} gameState={scene} />
             </div>
         </div>
     );

@@ -88,6 +88,9 @@ function kPMClient:RegisterEvents()
     self.m_PlayerPing = NetEvents:Subscribe('Player:Ping', self, self.OnPlayerPing)
     self.m_PingTable = {}
 
+    self.m_PlayerReadyUpPlayers = NetEvents:Subscribe('Player:ReadyUpPlayers', self, self.OnReadyUpPlayers)
+    self.m_PlayerReadyUpPlayersTable = {}
+
     self.m_UIPushScreen = Hooks:Install('UI:PushScreen', 1, self, self.OnUIPushScreen)
 
     -- Player Events
@@ -364,6 +367,10 @@ function kPMClient:OnPlayerPing(p_PingTable)
     self.m_PingTable = p_PingTable
 end
 
+function kPMClient:OnReadyUpPlayers(p_ReadyUpPlayers)
+    self.m_PlayerReadyUpPlayersTable = p_ReadyUpPlayers
+end
+
 function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     -- Validate our gamestates
     if p_OldGameState == nil or p_GameState == nil then
@@ -410,14 +417,20 @@ function kPMClient:OnUpdateScoreboard(player)
 		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
 			ping = self.m_PingTable[player.id]
         end
+
+        local ready = false
+        if self.m_PlayerReadyUpPlayersTable[player.id] ~= nil then
+            ready = self.m_PlayerReadyUpPlayersTable[player.id]
+        end
         
 		table.insert(playersObject[l_DefendersId], {
-            ["id"] = player.id, 
-            ["name"] = player.name, 
+            ["id"] = player.id,
+            ["name"] = player.name,
             ["ping"] = ping,
-            ["kill"] = player.kills, 
-            ["death"] = player.deaths, 
-            ["isDead"] = not player.alive
+            ["kill"] = player.kills,
+            ["death"] = player.deaths,
+            ["isDead"] = not player.alive,
+            ["ready"] = ready,
         })
     end
 
@@ -427,14 +440,20 @@ function kPMClient:OnUpdateScoreboard(player)
 		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
 			ping = self.m_PingTable[player.id]
         end
+
+        local ready = false
+        if self.m_PlayerReadyUpPlayersTable[player.id] ~= nil then
+            ready = self.m_PlayerReadyUpPlayersTable[player.id]
+        end
         
 		table.insert(playersObject[l_AttackersId], {
-            ["id"] = player.id, 
-            ["name"] = player.name, 
+            ["id"] = player.id,
+            ["name"] = player.name,
             ["ping"] = ping,
-            ["kill"] = player.kills, 
-            ["death"] = player.deaths, 
-            ["isDead"] = not player.alive
+            ["kill"] = player.kills,
+            ["death"] = player.deaths,
+            ["isDead"] = not player.alive,
+            ["ready"] = ready,
         })
     end
     

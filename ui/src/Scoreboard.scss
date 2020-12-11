@@ -86,8 +86,21 @@
                         align-items: center;
                         padding: 0 0 0 1vw;
                         font-size: 1.1vw;
+
+                        &.playerReady {
+                            &.ready {
+                                color: var(--success);
+                            }
+                        }
                     }
                 }
+            }
+        }
+
+        &.gameState1 {
+            .playersHolderHeader,
+            .playersHolder .playersHolderInner .playerHolder {
+                grid-template-columns: 7.5% 10% 1fr 10% 10%;
             }
         }
 

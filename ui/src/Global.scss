@@ -218,3 +218,53 @@ h6 {
         font-weight: 300;
     }
 }
+
+.endgameBox {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 12.5vh;
+    background: rgba(0,0,0,.7);
+    width: 26vw;
+    height: 15vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-flow: column;
+    border: .15vw solid var(--primary);
+
+    &.defenders {
+        border-color: var(--primary);
+
+        h1 {
+            color: var(--primary);
+        }
+    }
+
+    &.attackers {
+        border-color: var(--secondary);
+
+        h1 {
+            color: var(--secondary);
+        }
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        z-index: 5;
+    }
+
+    h1 {
+        font-size: 1.8vw;
+    }
+
+    h2 {
+        font-size: 1.4vw;
+        font-weight: 400;
+        margin-bottom: 1vh;
+    }
+}
