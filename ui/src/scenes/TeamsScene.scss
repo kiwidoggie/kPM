@@ -1,0 +1,28 @@
+#pageTeams {
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-flow: column;
+}
+
+.teamsList {
+    position: absolute;
+    left: 3vw;
+    top: 14vh;
+    display: flex;
+    flex-flow: column;
+
+    hr {
+        width: 4vw;
+        margin: 1.5vh 0 2vh;
+        border: 0;
+        border-bottom: 0.15741vh solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn.border-btn {
+        width: 10vw;
+        margin: 0 0 .6vh;
+        text-align: left;
+    }
+}

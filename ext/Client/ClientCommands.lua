@@ -45,44 +45,4 @@ ClientCommands =
 
         return "Toggled Ready Up State"
     end,
-
-    Assault = function(args)
-        if #args ~= 0 then
-            return ClientCommands.errInvalidCommand
-        end
-
-        print("switching to assault");
-
-        NetEvents:Send("kPM:SelectAssault")
-    end,
-
-    Smg = function(args)
-        if #args ~= 0 then
-            return ClientCommands.errInvalidCommand
-        end
-
-        print("switching to smg")
-
-        NetEvents:Send("kPM:SelectSmg")
-    end,
-
-    Demo = function(args)
-        if #args ~= 0 then
-            return ClientCommands.errInvalidCommand
-        end
-
-        print("switching to demo")
-
-        NetEvents:Send("kPM:SelectDemo")
-    end,
-
-    Sniper = function(args)
-        if #args ~= 0 then
-            return ClientCommands.errInvalidCommand
-        end
-
-        print("switching to sniper")
-
-        NetEvents:Send("kPM:SelectSniper")
-    end
 }

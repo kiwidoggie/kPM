@@ -1,0 +1,118 @@
+#promodHeader {
+    position: absolute;
+    top: 11vh;
+    right: 3.5vh;
+    z-index: 99999;
+    opacity: .2;
+    text-align: center;
+    color: #000000;
+    display: block;
+    font-weight: 400;
+    font-size: 1.851851851851852vh;
+    text-transform: uppercase;
+    background: white;
+    padding: 0 0.5vh;
+}
+
+#inGameHeader {
+    position: absolute;
+    top: 0;
+    left: calc(50vw - 17.5vw);
+    z-index: 999;
+    width: 35vw;
+    height: 7vh;
+    display: grid;
+    grid-template-columns: .5fr 1fr .5fr;
+
+    #teamDefenders,
+    #teamAttackers {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.15vw;
+        font-weight: 600;
+        background: rgba(0, 0, 0, 0.65);
+    }
+
+    #score {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+
+        div {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-flow: column;
+            background: rgba(0, 0, 0, 0.6);
+
+            span.team {
+                font-size: .8vw;
+                text-transform: uppercase;
+                font-weight: 400;
+                line-height: 1;
+            }
+
+            span.points {
+                line-height: 1;
+                font-weight: 600;
+            }
+
+            &#scoreAttackers {
+                position: relative;
+                font-size: 2.6vw;
+                color: var(--primary);
+
+                &:before {
+                    content: '';
+                    position: absolute;
+                    background: var(--primary);
+                    width: 100%;
+                    height: .5vh;
+                    top: 0;
+                    left: 0;
+                }
+            }
+    
+            &#scoreDefenders {
+                position: relative;
+                font-size: 2.6vw;
+                color: var(--secondary);
+
+                &:before {
+                    content: '';
+                    position: absolute;
+                    background: var(--secondary);
+                    width: 100%;
+                    height: .5vh;
+                    top: 0;
+                    left: 0;
+                }
+            }
+
+            &#roundTimer {
+                position: relative;
+
+                .timer {
+                    font-size: 1.8vw;
+                    line-height: 1;
+                    font-weight: 600;
+                }
+
+                .round {
+                    font-size: .7vw;
+                    text-transform: uppercase;
+                }
+
+                &:before {
+                    content: '';
+                    position: absolute;
+                    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+                    width: 100%;
+                    height: .5vh;
+                    top: 0;
+                    left: 0;
+                }
+            }
+        }
+    }
+}

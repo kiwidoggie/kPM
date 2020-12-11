@@ -1,0 +1,158 @@
+#inGameScoreboard {
+    position: absolute;
+    top: calc(50vh - 37.5vh);
+    left: calc(50vw - 32.5vw);
+    z-index: 999;
+    width: 65vw;
+    height: 75vh;
+    display: grid;
+    grid-template-rows: 50% 50%;
+    grid-gap: 2.5vh;
+
+    div.team {
+        position: relative;
+        background: rgba(0, 0, 0, 0.6);
+        display: grid;
+        grid-template-rows: 7vh 4vh 1fr;
+
+        .headerBar {
+            position: relative;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-flow: row;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2vw;
+
+            div {
+                font-size: 1.5vw;
+                line-height: 1;
+                text-transform: uppercase;
+                
+                &.point {
+                    font-weight: 600;
+                    font-size: 2.65vw;
+                }
+            }
+        }
+
+        .playersHolderHeader {
+            position: relative;
+            width: 100%;
+            display: grid;
+            height: 4vh;
+            grid-template-columns: 7.5% 1fr 10% 10%;
+
+            div {
+                display: flex;
+                align-items: center;
+                padding: 0 0 0 .7vw;
+                font-weight: 200;
+                text-transform: uppercase;
+                font-size: 1vw;
+            }
+        }
+
+        .playersHolder {
+            overflow-y: auto;
+            position: relative;
+
+            .playersHolderInner {
+                position: relative;
+                min-height: 100%;
+
+                .noPlayers {
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 1.1vw;
+                }
+
+                .playerHolder {
+                    position: relative;
+                    width: 100%;
+                    height: 6vh;
+                    display: grid;
+                    grid-template-columns: 7.5% 1fr 10% 10%;
+                    background: rgba(0, 0, 0, 0.25);
+
+                    &.isDead {
+                        opacity: .4;
+                    }
+    
+                    div {
+                        display: flex;
+                        align-items: center;
+                        padding: 0 0 0 1vw;
+                        font-size: 1.1vw;
+                    }
+                }
+            }
+        }
+
+        &.attackers {
+            &:before {
+                content: '';
+                position: absolute;
+                background: var(--primary);
+                width: 100%;
+                height: .5vh;
+                top: 0;
+                left: 0;
+                z-index: 99;
+            }
+
+            .headerBar {
+                .point {
+                    color: var(--primary);
+                }
+            }
+
+            .playerHolder {
+                &:before {
+                    content: '';
+                    position: absolute;
+                    background: var(--primary);
+                    width: 0.25vw;
+                    height: 100%;
+                    top: 0;
+                    left: 0;
+                    z-index: 99;
+                }
+            }
+        }
+
+        &.defenders {
+            &:before {
+                content: '';
+                position: absolute;
+                background: var(--secondary);
+                width: 100%;
+                height: .5vh;
+                top: 0;
+                left: 0;
+                z-index: 99;
+            }
+
+            .headerBar {
+                .point {
+                    color: var(--secondary);
+                }
+            }
+
+            .playerHolder {
+                &:before {
+                    content: '';
+                    position: absolute;
+                    background: var(--secondary);
+                    width: 0.25vw;
+                    height: 100%;
+                    top: 0;
+                    left: 0;
+                    z-index: 99;
+                }
+            }
+        }
+    }
+}

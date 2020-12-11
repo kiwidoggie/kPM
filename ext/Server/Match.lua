@@ -1,8 +1,12 @@
 local Match = class("Match")
+require ("__shared/MapsConfig")
 require ("__shared/GameStates")
 require ("__shared/kPMConfig")
+require ("LoadoutManager")
+require ("LoadoutDefinitions")
+require ("__shared/LevelNameHelper")
 
-function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount)
+function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager)
     -- Save server reference
     self.m_Server = p_Server
 
@@ -47,6 +51,8 @@ function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount)
     self.m_UpdateTicks[GameStates.NadeTraining] = 0.0
     self.m_UpdateTicks[GameStates.EndGame] = 0.0
 
+    self.m_LoadoutManager = p_LoadoutManager
+
     print("init: " .. self.m_UpdateTicks[GameStates.EndGame])
 end
 
@@ -81,7 +87,7 @@ function Match:OnWarmup(p_DeltaTime)
         if self:IsAllPlayersRup() then
             -- First change the game state so we have no logic running
             self.m_Server:ChangeGameState(GameStates.None)
-            ChatManager:Yell("All players have readied up, starting knife round...", 2.0)
+            --ChatManager:Yell("All players have readied up, starting knife round...", 2.0)
 
             -- Handle resetting all players or spawning them
             self.m_Server:ChangeGameState(GameStates.WarmupToKnife)
@@ -94,7 +100,7 @@ function Match:OnWarmup(p_DeltaTime)
             local l_PlayerRup = self:IsPlayerRup(l_Player.id)
             
             -- Send to client to update WebUI
-            NetEvents:SendTo("kPM:RupStateChanged", l_Player, 1, l_PlayerRup)
+            NetEvents:SendTo("kPM:RupStateChanged", l_Player, self:GetPlayerNotRupCount(), l_PlayerRup)
         end
     end
 
@@ -115,6 +121,11 @@ function Match:OnWarmupToKnife(p_DeltaTime)
         if kPMConfig.DebugMode then
             print("WarmupToKnife completed, switching to knife round")
         end
+
+        self:SpawnAllPlayers(true)
+
+        -- Tried this to remove the animated melee attack, not really working
+        -- self:FireEventForSpecificEntity("ServerMeleeEntity", "DisableMeleeTarget")
 
         -- TODO: Force all players to respawn with a knife only kit
         -- TODO: Transitition to the next game state
@@ -223,7 +234,11 @@ function Match:OnKnifeToFirst(p_DeltaTime)
     if self.m_UpdateTicks[GameStates.KnifeToFirst] > kPMConfig.MaxTransititionTime then
         self.m_UpdateTicks[GameStates.KnifeToFirst] = 0.0
 
-        -- TODO: Spawn all players with their respective loadouts
+        -- Spawn all players with their respective loadouts
+        self:SpawnAllPlayers(false)
+
+        -- Tried this to remove the animated melee attack
+        -- self:FireEventForSpecificEntity("ServerMeleeEntity", "EnableMeleeTarget")
 
         self.m_Server:ChangeGameState(GameStates.FirstHalf)
         return
@@ -253,7 +268,8 @@ function Match:OnFirstHalf(p_DeltaTime)
         -- Kill all players
         self:KillAllPlayers(false)
 
-        -- TODO: Respawn all players
+        -- Respawn all players
+        self:SpawnAllPlayers(false)
         
         -- Manually update the ticks
         self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
@@ -440,6 +456,26 @@ function Match:IsPlayerRup(p_PlayerId)
     return self.m_ReadyUpPlayers[s_PlayerId] == true
 end
 
+function Match:GetPlayerNotRupCount()
+    local l_Count = 0;
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        -- Check that the player is valid
+        if l_Player == nil then
+            print("err: invalid player in player manager.")
+            return 0
+        end
+
+        local l_PlayerId = l_Player.id
+
+        if self.m_ReadyUpPlayers[l_PlayerId] == nil or self.m_ReadyUpPlayers[l_PlayerId] == false then
+            l_Count = l_Count + 1
+        end
+    end
+
+    return l_Count
+end
+
 function Match:KillAllPlayers(p_IsAllowedToSpawn)
     -- Kill all alive players
     local s_Players = PlayerManager:GetPlayers()
@@ -485,6 +521,201 @@ function Match:KillPlayer(p_Player, p_IsAllowedToSpawn)
          print("killing corpse " .. l_Name)
          l_Corpse:ForceDead()
      end
+end
+
+function Match:SpawnAllPlayers(p_KnifeOnly)
+    if p_KnifeOnly == nil then
+        p_KnifeOnly = false
+    end
+
+    self:Cleanup();
+
+    local l_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
+
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        -- Validate our player
+        if l_Player == nil then
+            goto _knife_continue_
+        end
+
+        self:SpawnPlayer(
+            l_Player, 
+            self:GetRandomSpawnpoint(l_Player), 
+            CharacterPoseType.CharacterPoseType_Stand, 
+            l_SoldierBlueprint, 
+            p_KnifeOnly,
+            self.m_LoadoutManager:GetPlayerLoadout(l_Player)
+        )
+
+        ::_knife_continue_::
+    end
+end
+
+function Match:SpawnPlayer(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOnly, p_SelectedKit)
+    if p_Player == nil then
+        return
+    end
+
+    if p_Player.alive then
+        return
+    end
+
+    if p_Player.soldier ~= nil then
+		p_Player.soldier:Kill()
+    end
+
+    if p_SelectedKit == nil then
+        return
+    end
+
+    local l_SoldierAsset = nil
+    local l_Appearance = nil
+    if p_Player.teamId == TeamId.Team1 then
+        -- US
+        l_SoldierAsset = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["DEFENDER"]["KIT"])
+        l_Appearance = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["DEFENDER"]["APPEARANCE"])
+    else
+        -- RUS
+        l_SoldierAsset = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["ATTACKER"]["KIT"])
+        l_Appearance = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["ATTACKER"]["APPEARANCE"])
+    end
+    if l_SoldierAsset == nil or l_Appearance == nil then
+        return
+    end
+
+    if p_KnifeOnly then
+        local knife = ResourceManager:SearchForDataContainer('Weapons/Knife/U_Knife')
+        p_Player:SelectWeapon(WeaponSlot.WeaponSlot_0, knife, {})
+    else
+        local l_Loadout = p_SelectedKit.Weapons
+        if l_Loadout == nil then
+            print("err: something is really wrong here, spawn with a knife then...")
+            local knife = ResourceManager:SearchForDataContainer('Weapons/Knife/U_Knife')
+            p_Player:SelectWeapon(WeaponSlot.WeaponSlot_0, knife, {})
+        end
+
+        local l_WeaponIndex = 0;
+        for l_Index, l_LoadoutItem in ipairs(l_Loadout) do
+            if l_LoadoutItem == nil then
+                goto _weapon_continue_
+            end
+
+            local l_Attachments = {}
+            if l_WeaponIndex == 0 then
+                l_Attachments = p_SelectedKit.Attachments
+            end
+
+            p_Player:SelectWeapon(l_WeaponIndex, l_LoadoutItem, l_Attachments)
+    
+            l_WeaponIndex = l_WeaponIndex + 1;
+
+            ::_weapon_continue_::
+        end
+    end
+    
+    p_Player:SelectUnlockAssets(l_SoldierAsset, { l_Appearance })
+
+    local l_SpawnedSoldier = p_Player:CreateSoldier(p_SoldierBp, p_Transform)
+    
+	p_Player:SpawnSoldierAt(l_SpawnedSoldier, p_Transform, p_Pose)
+	p_Player:AttachSoldier(l_SpawnedSoldier)
+
+    return l_SpawnedSoldier
+end
+
+function Match:GetRandomSpawnpoint(p_Player)
+    if p_Player == nil then
+        print("err: no player?")
+        return
+    end
+
+    local l_LevelName = LevelNameHelper:GetLevelName()
+    if l_LevelName == nil then
+        print("err: no level??")
+        return
+    end
+
+    -- TODO: Don't spawn on an already taken spawnpoint
+    
+    local l_SpawnTrans = nil;
+    if p_Player.teamId == TeamId.Team1 then
+        l_SpawnTrans = MapsConfig[l_LevelName]["DEF_SPAWNS"][ math.random( #MapsConfig[l_LevelName]["DEF_SPAWNS"] ) ]
+    else
+        l_SpawnTrans = MapsConfig[l_LevelName]["ATK_SPAWNS"][  math.random( #MapsConfig[l_LevelName]["ATK_SPAWNS"] ) ]
+    end
+
+    if l_SpawnTrans == nil then
+        return
+    end
+
+    return l_SpawnTrans
+end
+
+function Match:Cleanup()
+    self:CleanupSpecificEntity("ServerPickupEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientPickupEntity")
+
+    self:CleanupSpecificEntity("ServerMedicBagEntity")
+    self:CleanupSpecificEntity("ServerMedicBagHealingSphereEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientMedicBagEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientMedicBagHealingSphereEntity")
+
+    self:CleanupSpecificEntity("ServerSupplySphereEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientSupplySphereEntity")
+
+    self:CleanupSpecificEntity("ServerExplosionEntity")
+    self:CleanupSpecificEntity("ServerExplosionPackEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientExplosionEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientExplosionPackEntity")
+
+    self:CleanupSpecificEntity("ServerGrenadeEntity")
+    NetEvents:Broadcast("kPM:Cleanup", "ClientGrenadeEntity")
+end
+
+function Match:CleanupSpecificEntity(p_EntityType)
+    if p_EntityType == nil then
+        return
+    end
+
+    print('Cleaning up: ' ..p_EntityType)
+
+    local l_Entities = {}
+
+    local l_Iterator = EntityManager:GetIterator(p_EntityType)
+    local l_Entity = l_Iterator:Next()
+    while l_Entity do
+        l_Entities[#l_Entities+1] = Entity(l_Entity)
+        l_Entity = l_Iterator:Next()
+    end
+
+    for _, l_Entity in pairs(l_Entities) do
+        if l_Entity ~= nil then
+            print('Destroying: ' ..p_EntityType)
+            l_Entity:Destroy()
+        end
+    end
+end
+
+function Match:FireEventForSpecificEntity(p_EntityType, p_EventString)
+    if p_EntityType == nil then
+        return
+    end
+
+    local l_Entities = {}
+
+    local l_Iterator = EntityManager:GetIterator(p_EntityType)
+    local l_Entity = l_Iterator:Next()
+    while l_Entity do
+        l_Entities[#l_Entities+1] = Entity(l_Entity)
+        l_Entity = l_Iterator:Next()
+    end
+
+    for _, l_Entity in pairs(l_Entities) do
+        if l_Entity ~= nil then
+            l_Entity:FireEvent(p_EventString)
+        end
+    end
 end
 
 return Match

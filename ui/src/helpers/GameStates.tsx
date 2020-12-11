@@ -1,0 +1,33 @@
+export enum GameStates {
+    None = 0,
+    Warmup = 1,
+    WarmupToKnife = 2,
+    KnifeRound = 3,
+    KnifeToFirst = 4,
+    FirstHalf = 5,
+    FirstToHalf = 6,
+    HalfTime = 7,
+    HalfToSecond = 8,
+    SecondHalf = 9,
+    Timeout = 10,
+    Start = 11,
+    NadeTraining = 12,
+    EndGame = 13,
+}
+
+export var GameStatesRoundString = {
+    [GameStates.None]: 'Pre-Round',
+    [GameStates.Warmup]: 'Warmup',
+    [GameStates.WarmupToKnife]: ' - ',
+    [GameStates.KnifeRound]: 'Knife',
+    [GameStates.KnifeToFirst]: ' - ',
+    [GameStates.FirstHalf]: 'Round {round}',
+    [GameStates.FirstToHalf]: ' - ',
+    [GameStates.HalfTime]: 'Half Time',
+    [GameStates.HalfToSecond]: ' - ',
+    [GameStates.SecondHalf]: 'Round {round}',
+    [GameStates.Timeout]: 'Timeout',
+    [GameStates.Start]: 'Start',
+    [GameStates.NadeTraining]: 'Training',
+    [GameStates.EndGame]: 'End',
+}
