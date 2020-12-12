@@ -69,6 +69,8 @@ function kPMServer:RegisterEvents()
 
     -- Events from the client
     self.m_ToggleRupEvent = NetEvents:Subscribe("kPM:ToggleRup", self, self.OnToggleRup)
+    -- TODO: This is a debug only function
+    self.m_ForceToggleRupEvent = NetEvents:Subscribe("kPM:ForceToggleRup", self, self.OnForceToggleRup)
     self.m_PlayerConnectedEvent = NetEvents:Subscribe("kPM:PlayerConnected", self, self.OnPlayerConnected)
     self.m_PlayerSetSelectedTeamEvent = NetEvents:Subscribe("kPM:PlayerSetSelectedTeam", self, self.OnPlayerSetSelectedTeam)
     self.m_PlayerSetSelectedKitEvent = NetEvents:Subscribe("kPM:PlayerSetSelectedKit", self, self.OnPlayerSetSelectedKit)
@@ -328,6 +330,23 @@ function kPMServer:OnToggleRup(p_Player)
 
     -- Update the match information
     self.m_Match:OnPlayerRup(p_Player)
+end
+
+-- TODO: This is a debug only function
+function kPMServer:OnForceToggleRup(p_Player)
+    if p_Player == nil then
+        print("err: invalid player.")
+        return
+    end
+
+    local s_PlayerName = p_Player.name
+    local s_PlayerId = p_Player.id
+
+    if self.m_GameState ~= GameStates.Warmup then
+        return
+    end
+
+    self.m_Match:ForceAllPlayerRup()
 end
 
 function kPMServer:OnPlayerChat(p_Player, p_RecipientMask, p_Message)

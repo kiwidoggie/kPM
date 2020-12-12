@@ -8,6 +8,7 @@ export interface Player {
     death: number;
     isDead: boolean;
     isReady: boolean;
+    team?: Teams;
 };
 
 export interface Players {

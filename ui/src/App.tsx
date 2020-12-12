@@ -11,7 +11,7 @@ import LoadoutScene from "./scenes/LoadoutScene";
 
 import { GameStates } from './helpers/GameStates';
 import { Teams } from "./helpers/Teams";
-import { Players } from "./helpers/Player";
+import { Player, Players } from "./helpers/Player";
 
 import './Animations.scss';
 import './Global.scss';
@@ -113,164 +113,29 @@ const App: React.FC = () => {
         [Teams.Defenders]: [],
     });
 
-    const SetDummyPlayers = () => {
-        setPlayers({
-            [Teams.Attackers]: [
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                    isReady: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                    isReady: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: false,
-                },
-            ],
-            [Teams.Defenders]: [
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                    isReady: false,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: false,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: true,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                    isReady: true,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                    isReady: false,
-                },
-            ],
-        });
-    }
+    const [clientPlayer, setClientPlayer] = useState<Player>({
+        id: 0,
+        name: '',
+        ping: 0,
+        kill: 0,
+        death: 0,
+        isDead: false,
+        isReady: false,
+        team: Teams.None,
+    });
 
-    window.UpdatePlayers = function (p_Players: any) {
+    window.UpdatePlayers = function (p_Players: any, p_ClientPlayer: any) {
+        setClientPlayer(p_ClientPlayer);
+
         setPlayers({
             [Teams.Attackers]: p_Players[0],
             [Teams.Defenders]: p_Players[1],
         });
+    }
+
+    const [rupProgress, setRupProgress] = useState<number>(0);
+    window.RupInteractProgress = function(m_RupHeldTime: number, MaxReadyUpTime: number) {
+        setRupProgress(Math.round(m_RupHeldTime / MaxReadyUpTime * 100));
     }
 
     const GameStatesPage = () => {
@@ -281,7 +146,7 @@ const App: React.FC = () => {
 
             case GameStates.WarmupToKnife:
             case GameStates.Warmup:
-                return <WarmupScene />;
+                return <WarmupScene rupProgress={rupProgress} players={players} clientPlayer={clientPlayer} />;
 
             case GameStates.KnifeRound:
                 return <KnifeRoundScene />;
@@ -312,7 +177,6 @@ const App: React.FC = () => {
                 <button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>
                 <button onClick={() => setShowHud(prevState => !prevState)}>ShowHeader On / Off</button>
                 <button onClick={() => setShowScoreboard(prevState => !prevState)}>Scoreboard On / Off</button>
-                <button onClick={() => SetDummyPlayers()}>Dummy players</button>
                 <br />
                 <button onClick={() => setRoundWon(true)}>Win</button>
                 <button onClick={() => setRoundWon(false)}>Lose</button>
@@ -356,7 +220,8 @@ declare global {
         UpdateRoundEndStatus: (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) => void;
         OpenCloseLoadoutMenu: () => void;
         OpenCloseTeamMenu: () => void;
-        UpdatePlayers: (p_Players: any) => void; //TODO: fix any
+        UpdatePlayers: (p_Players: any, p_ClientPlayer: any) => void;
         OpenCloseScoreboard: () => void;
+        RupInteractProgress: (m_RupHeldTime: number, MaxReadyUpTime: number) => void
     }
 }

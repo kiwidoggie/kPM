@@ -45,4 +45,15 @@ ClientCommands =
 
         return "Toggled Ready Up State"
     end,
+
+    ForceReadyUp = function(args)
+        if #args ~= 0 then
+            return ClientCommands.errInvalidCommand
+        end
+
+        -- Send the toggle event to the server
+        NetEvents:Send("kPM:ForceToggleRup")
+
+        return "Froced all players to Ready Up State"
+    end,
 }

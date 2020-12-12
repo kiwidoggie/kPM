@@ -388,6 +388,7 @@ function Match:OnPlayerRup(p_Player)
     if self.m_ReadyUpPlayers[s_PlayerId] == nil then
         self.m_ReadyUpPlayers[s_PlayerId] = true
         print("info: player " .. p_Player.name .. " ready up!")
+        NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
         return
     end
 
@@ -395,6 +396,7 @@ function Match:OnPlayerRup(p_Player)
     if self.m_ReadyUpPlayers[s_PlayerId] == false then
         self.m_ReadyUpPlayers[s_PlayerId] = true
         print("info: player " .. p_Player.name .. " ready up!")
+        NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
         return
     end
 
@@ -402,10 +404,15 @@ function Match:OnPlayerRup(p_Player)
     if self.m_ReadyUpPlayers[s_PlayerId] == true then
         self.m_ReadyUpPlayers[s_PlayerId] = false
         print("info: player " .. p_Player.name .. " unready up :(")
+        NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
         return
     end
-    
-    NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
+end
+
+function Match:ForceAllPlayerRup()
+    for index, l_Player in pairs(PlayerManager:GetPlayers()) do
+		self.m_ReadyUpPlayers[l_Player.id] = true
+    end
 end
 
 function Match:IsAllPlayersRup()

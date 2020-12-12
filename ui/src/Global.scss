@@ -192,6 +192,10 @@ h6 {
 
     &.ready {
         border-color: var(--success);
+
+        h1 {
+            color: var(--success);
+        }
     }
 
     h1,

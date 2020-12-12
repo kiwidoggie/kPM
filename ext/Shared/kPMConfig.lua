@@ -10,7 +10,7 @@ kPMConfig =
     -- ==========
 
     -- Maximum Ready up time
-    MaxReadyUpTime = 0.5,
+    MaxReadyUpTime = 1.5,
 
     -- Maximum Plant time
     PlantTime = 5.0,

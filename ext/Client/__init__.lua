@@ -85,10 +85,10 @@ function kPMClient:RegisterEvents()
     self.m_RupStateEvent = NetEvents:Subscribe("kPM:RupStateChanged", self, self.OnRupStateChanged)
 
     -- Update ping table
-    self.m_PlayerPing = NetEvents:Subscribe('Player:Ping', self, self.OnPlayerPing)
+    self.m_PlayerPing = NetEvents:Subscribe("Player:Ping", self, self.OnPlayerPing)
     self.m_PingTable = {}
 
-    self.m_PlayerReadyUpPlayers = NetEvents:Subscribe('Player:ReadyUpPlayers', self, self.OnReadyUpPlayers)
+    self.m_PlayerReadyUpPlayers = NetEvents:Subscribe("Player:ReadyUpPlayers", self, self.OnReadyUpPlayers)
     self.m_PlayerReadyUpPlayersTable = {}
 
     self.m_UIPushScreen = Hooks:Install('UI:PushScreen', 1, self, self.OnUIPushScreen)
@@ -151,6 +151,8 @@ function kPMClient:RegisterCommands()
     -- Register console commands for users to leverage
     self.m_PositionCommand = Console:Register("kpm_player_pos", "Displays the current player position", ClientCommands.PlayerPosition)
     self.m_ReadyUpCommand = Console:Register("kpm_ready_up", "Toggles the ready up state", ClientCommands.ReadyUp)
+    self.m_ForceReadyUpCommand = Console:Register("kpm_force_ready_up", "Toggles all players to ready up state", ClientCommands.ForceReadyUp)
+    
 end
 
 function kPMClient:UnregisterCommands()
@@ -350,7 +352,8 @@ function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
         return
     end
 
-    WebUI:ExecuteJS("UpdateRupStatus(" .. tostring(p_WaitingOnPlayers) .. ", " .. tostring(p_LocalRupStatus) .. ");")
+    local l_Player = PlayerManager:GetLocalPlayer()
+    self:OnUpdateScoreboard(l_Player)
 end
 
 function kPMClient:OnUIPushScreen(hook, screen, graphPriority, parentGraph)
@@ -391,7 +394,7 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
 end
 
-function kPMClient:OnUpdateScoreboard(player)
+function kPMClient:OnUpdateScoreboard(p_Player)
     print("OnUpdateScoreboard")
 
     local l_DefendersId = TeamId.Team1
@@ -408,56 +411,78 @@ function kPMClient:OnUpdateScoreboard(player)
 		return a.score > b.score
     end)
 
-    local playersObject = {}
-    playersObject[l_DefendersId] = {}
-    playersObject[l_AttackersId] = {}
+    local l_PlayersObject = {}
+    l_PlayersObject[l_DefendersId] = {}
+    l_PlayersObject[l_AttackersId] = {}
     
-    for index, player in pairs(l_PlayerListDefenders) do
-		local ping = "0"
-		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
-			ping = self.m_PingTable[player.id]
+    for index, l_Player in pairs(l_PlayerListDefenders) do
+		local l_Ping = "0"
+		if self.m_PingTable[l_Player.id] ~= nil and self.m_PingTable[l_Player.id] >= 0 and self.m_PingTable[l_Player.id] < 999 then
+			l_Ping = self.m_PingTable[l_Player.id]
         end
 
-        local ready = false
-        if self.m_PlayerReadyUpPlayersTable[player.id] ~= nil then
-            ready = self.m_PlayerReadyUpPlayersTable[player.id]
+        local l_Ready = false
+        if self.m_PlayerReadyUpPlayersTable[l_Player.id] ~= nil then
+            l_Ready = self.m_PlayerReadyUpPlayersTable[l_Player.id]
         end
         
-		table.insert(playersObject[l_DefendersId], {
-            ["id"] = player.id,
-            ["name"] = player.name,
-            ["ping"] = ping,
-            ["kill"] = player.kills,
-            ["death"] = player.deaths,
-            ["isDead"] = not player.alive,
-            ["ready"] = ready,
+		table.insert(l_PlayersObject[TeamId.Team2], {
+            ["id"] = l_Player.id,
+            ["name"] = l_Player.name,
+            ["ping"] = l_Ping,
+            ["kill"] = l_Player.kills,
+            ["death"] = l_Player.deaths,
+            ["isDead"] = not l_Player.alive,
+            ["isReady"] = l_Ready,
+            ["team"] = l_Player.teamId,
         })
     end
 
-
-    for index, player in pairs(l_PlayerListAttackers) do
-		local ping = "0"
-		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
-			ping = self.m_PingTable[player.id]
+    for index, l_Player in pairs(l_PlayerListAttackers) do
+		local l_Ping = "0"
+		if self.m_PingTable[l_Player.id] ~= nil and self.m_PingTable[l_Player.id] >= 0 and self.m_PingTable[l_Player.id] < 999 then
+			l_Ping = self.m_PingTable[l_Player.id]
         end
 
-        local ready = false
-        if self.m_PlayerReadyUpPlayersTable[player.id] ~= nil then
-            ready = self.m_PlayerReadyUpPlayersTable[player.id]
+        local l_Ready = false
+        if self.m_PlayerReadyUpPlayersTable[l_Player.id] ~= nil then
+            l_Ready = self.m_PlayerReadyUpPlayersTable[l_Player.id]
         end
-        
-		table.insert(playersObject[l_AttackersId], {
-            ["id"] = player.id,
-            ["name"] = player.name,
-            ["ping"] = ping,
-            ["kill"] = player.kills,
-            ["death"] = player.deaths,
-            ["isDead"] = not player.alive,
-            ["ready"] = ready,
+
+		table.insert(l_PlayersObject[TeamId.Team1], {
+            ["id"] = l_Player.id,
+            ["name"] = l_Player.name,
+            ["ping"] = l_Ping,
+            ["kill"] = l_Player.kills,
+            ["death"] = l_Player.deaths,
+            ["isDead"] = not l_Player.alive,
+            ["isReady"] = l_Ready,
+            ["team"] = l_Player.teamId,
         })
     end
+
+    local l_Ping = "0"
+    if self.m_PingTable[p_Player.id] ~= nil and self.m_PingTable[p_Player.id] >= 0 and self.m_PingTable[p_Player.id] < 999 then
+        l_Ping = self.m_PingTable[p_Player.id]
+    end
+
+    local l_Ready = false
+    if self.m_PlayerReadyUpPlayersTable[p_Player.id] ~= nil then
+        l_Ready = self.m_PlayerReadyUpPlayersTable[p_Player.id]
+    end
+
+    local l_PlayerClient = {
+        ["id"] = p_Player.id,
+        ["name"] = p_Player.name,
+        ["ping"] = l_Ping,
+        ["kill"] = p_Player.kills,
+        ["death"] = p_Player.deaths,
+        ["isDead"] = not p_Player.alive,
+        ["isReady"] = l_Ready,
+        ["team"] = p_Player.teamId,
+    }
     
-    WebUI:ExecuteJS(string.format("UpdatePlayers(%s)", json.encode(playersObject)))
+    WebUI:ExecuteJS(string.format("UpdatePlayers(%s, %s)", json.encode(l_PlayersObject), json.encode(l_PlayerClient)))
 end
 
 function kPMClient:OnCleanup(p_EntityType)
