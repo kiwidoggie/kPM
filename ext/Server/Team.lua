@@ -72,7 +72,7 @@ function Team:RoundWon(p_RoundNumber)
     self.m_RoundsPlayed = self.m_RoundsPlayed + 1
 end
 
-function Team:RoundLost(p_RoundNumber)
+function Team:RoundLoss(p_RoundNumber)
     table.insert(self.m_RoundsLost, p_RoundNumber)
     self.m_RoundsPlayed = self.m_RoundsPlayed + 1
 end
@@ -81,6 +81,18 @@ function Team:RoundReset()
     self.m_RoundsLost = { }
     self.m_RoundsWon = { }
     self.m_RoundsPlayed = 0
+end
+
+function Team:CountRoundWon()
+    local count = 0
+    for _ in pairs(self.m_RoundsWon) do count = count + 1 end
+    return count
+end
+
+function Team:CountRoundLost()
+    local count = 0
+    for _ in pairs(self.m_RoundsLost) do count = count + 1 end
+    return count
 end
 
 return Team

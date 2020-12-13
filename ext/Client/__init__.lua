@@ -39,6 +39,9 @@ function kPMClient:__init()
     -- The current gamestate, this is read-only and should only be changed by the SERVER
     self.m_GameState = GameStates.None
 
+    self.m_AttackersTeamId = TeamId.Team2
+    self.m_DefendersTeamId = TeamId.Team1
+
     -- Freecamera
     self.m_FreeCam = FreeCam()
 end
@@ -108,6 +111,11 @@ function kPMClient:RegisterEvents()
     -- WebUI
     self.m_SetSelectedTeamEvent = Events:Subscribe("WebUISetSelectedTeam", self, self.OnSetSelectedTeam)
     self.m_SetSelectedLoadoutEvent = Events:Subscribe("WebUISetSelectedLoadout", self, self.OnSetSelectedLoadout)
+    
+    self.m_StartWebUITimerEvent = NetEvents:Subscribe("kPM:StartWebUITimer", self, self.OnStartWebUITimer)
+    self.m_UpdateHeaderEvent = NetEvents:Subscribe("kPM:UpdateHeader", self, self.OnUpdateHeader)
+
+    self.m_UpdateTeamsEvent = NetEvents:Subscribe("kPM:UpdateTeams", self, self.OnUpdateTeams)
 
     self.m_FirstSpawn = false
 
@@ -124,8 +132,11 @@ function kPMClient:OnSetSelectedTeam(p_Team)
         return
     end
 
-    print("client selected a team")
-    NetEvents:Send("kPM:PlayerSetSelectedTeam", p_Team)
+    if p_Team == 2 then
+        NetEvents:Send("kPM:PlayerSetSelectedTeam", self.m_AttackersTeamId)
+    else
+        NetEvents:Send("kPM:PlayerSetSelectedTeam", self.m_DefendersTeamId)
+    end
 end
 
 function kPMClient:OnSetSelectedLoadout(p_Data)
@@ -138,7 +149,6 @@ function kPMClient:OnSetSelectedLoadout(p_Data)
         self.m_FirstSpawn = true
     end
 
-    print("client selected a loadout")
     NetEvents:Send("kPM:PlayerSetSelectedKit", p_Data)
 end
 
@@ -394,14 +404,28 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
 end
 
+function kPMClient:OnUpdateHeader(p_AttackerPoints, p_DefenderPoints, p_Rounds)
+    WebUI:ExecuteJS("UpdateHeader(" .. p_AttackerPoints .. ", " .. p_DefenderPoints .. ", " .. (p_Rounds + 1) .. ");")
+    print('Attacker points: ' .. p_AttackerPoints)
+    print('Defender points: ' .. p_DefenderPoints)
+    print('Rounds: ' .. (p_Rounds + 1))
+end
+
+function kPMClient:OnUpdateTeams(p_AttackersTeamId, p_DefendersTeamId)
+    if self.m_AttackersTeamId ~= p_AttackersTeamId then
+        self.m_AttackersTeamId = p_AttackersTeamId
+    end
+
+    if self.m_DefendersTeamId ~= p_DefendersTeamId then
+        self.m_DefendersTeamId = p_DefendersTeamId
+    end
+end
+
 function kPMClient:OnUpdateScoreboard(p_Player)
     print("OnUpdateScoreboard")
 
-    local l_DefendersId = TeamId.Team1
-    local l_AttackersId = TeamId.Team2
-
-    local l_PlayerListDefenders = PlayerManager:GetPlayersByTeam(l_DefendersId)
-    local l_PlayerListAttackers = PlayerManager:GetPlayersByTeam(l_AttackersId)
+    local l_PlayerListDefenders = PlayerManager:GetPlayersByTeam(self.m_DefendersTeamId)
+    local l_PlayerListAttackers = PlayerManager:GetPlayersByTeam(self.m_AttackersTeamId)
 
     table.sort(l_PlayerListDefenders, function(a, b) 
 		return a.score > b.score
@@ -412,8 +436,8 @@ function kPMClient:OnUpdateScoreboard(p_Player)
     end)
 
     local l_PlayersObject = {}
-    l_PlayersObject[l_DefendersId] = {}
-    l_PlayersObject[l_AttackersId] = {}
+    l_PlayersObject["defenders"] = {}
+    l_PlayersObject["attackers"] = {}
     
     for index, l_Player in pairs(l_PlayerListDefenders) do
 		local l_Ping = "0"
@@ -426,7 +450,7 @@ function kPMClient:OnUpdateScoreboard(p_Player)
             l_Ready = self.m_PlayerReadyUpPlayersTable[l_Player.id]
         end
         
-		table.insert(l_PlayersObject[TeamId.Team2], {
+		table.insert(l_PlayersObject["defenders"], {
             ["id"] = l_Player.id,
             ["name"] = l_Player.name,
             ["ping"] = l_Ping,
@@ -449,7 +473,7 @@ function kPMClient:OnUpdateScoreboard(p_Player)
             l_Ready = self.m_PlayerReadyUpPlayersTable[l_Player.id]
         end
 
-		table.insert(l_PlayersObject[TeamId.Team1], {
+		table.insert(l_PlayersObject["attackers"], {
             ["id"] = l_Player.id,
             ["name"] = l_Player.name,
             ["ping"] = l_Ping,
@@ -483,6 +507,10 @@ function kPMClient:OnUpdateScoreboard(p_Player)
     }
     
     WebUI:ExecuteJS(string.format("UpdatePlayers(%s, %s)", json.encode(l_PlayersObject), json.encode(l_PlayerClient)))
+end
+
+function kPMClient:OnStartWebUITimer(p_Time)
+    WebUI:ExecuteJS(string.format("SetTimer(%s)", p_Time))
 end
 
 function kPMClient:OnCleanup(p_EntityType)

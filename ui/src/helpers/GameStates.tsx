@@ -10,7 +10,7 @@ export enum GameStates {
     HalfToSecond = 8,
     SecondHalf = 9,
     Timeout = 10,
-    Start = 11,
+    Strat = 11,
     NadeTraining = 12,
     EndGame = 13,
 }
@@ -27,7 +27,7 @@ export var GameStatesRoundString = {
     [GameStates.HalfToSecond]: ' - ',
     [GameStates.SecondHalf]: 'Round {round}',
     [GameStates.Timeout]: 'Timeout',
-    [GameStates.Start]: 'Start',
+    [GameStates.Strat]: 'Strat',
     [GameStates.NadeTraining]: 'Training',
     [GameStates.EndGame]: 'End',
 }

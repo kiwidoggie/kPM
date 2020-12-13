@@ -35,7 +35,7 @@ kPMConfig =
     MatchDefaultRounds = 24,
 
     -- Minimum of 2 players in order to start a match
-    MinPlayerCount = 1,
+    MinPlayerCount = 2,
 
     -- Minimum clan tag length
     MinClanTagLength = 1,
@@ -47,8 +47,8 @@ kPMConfig =
     MaxKnifeRoundTime = 300.0,
 
     -- Maximum transitition time between gamestates (default: 2 seconds)
-    MaxTransititionTime = 2.0,
+    MaxTransititionTime = 5.0,
 
     -- Round time (default: 10 minutes)
-    MaxRoundTime = 600.0,
+    MaxRoundTime = 300.0,
 }

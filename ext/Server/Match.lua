@@ -6,12 +6,12 @@ require ("LoadoutManager")
 require ("LoadoutDefinitions")
 require ("__shared/LevelNameHelper")
 
-function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager)
+function Match:__init(p_Server, p_TeamAttackers, p_TeamDefenders, p_RoundCount, p_LoadoutManager)
     -- Save server reference
     self.m_Server = p_Server
 
-    self.m_Attackers = p_Team1
-    self.m_Defenders = p_Team2
+    self.m_Attackers = p_TeamAttackers
+    self.m_Defenders = p_TeamDefenders
 
     -- Number of rounds to play in total (divide by 2 for rounds per half)
     self.m_RoundCount = p_RoundCount
@@ -33,6 +33,15 @@ function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager
     self.m_UpdateStates[GameStates.WarmupToKnife] = self.OnWarmupToKnife
     self.m_UpdateStates[GameStates.KnifeRound] = self.OnKnifeRound
     self.m_UpdateStates[GameStates.KnifeToFirst] = self.OnKnifeToFirst
+    self.m_UpdateStates[GameStates.FirstHalf] = self.OnFirstHalf
+    --self.m_UpdateStates[GameStates.FirstToHalf] = self.OnFirstToHalf -- TODO: FIXME
+    self.m_UpdateStates[GameStates.HalfTime] = self.OnHalfTime -- TODO: FIXME
+    self.m_UpdateStates[GameStates.HalfToSecond] = self.OnHalfToSecond -- TODO: FIXME
+    self.m_UpdateStates[GameStates.SecondHalf] = self.OnSecondHalf -- TODO: FIXME
+    self.m_UpdateStates[GameStates.Timeout] = self.OnTimeout -- TODO: FIXME
+    self.m_UpdateStates[GameStates.Strat] = self.OnStrat
+    --self.m_UpdateStates[GameStates.NadeTraining] = self.OnNadeTraining -- TODO: FIXME
+    self.m_UpdateStates[GameStates.EndGame] = self.OnEndGame -- TODO: FIXME
 
     -- State ticks
     self.m_UpdateTicks = { }
@@ -79,6 +88,10 @@ function Match:OnEngineUpdate(p_GameState, p_DeltaTime)
 end
 
 function Match:OnWarmup(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.Warmup] == 0.0 then
+        self.m_Server:SetClientTimer(0)
+    end
+
     -- Check to see if the current time is greater or equal than our max
     if self.m_UpdateTicks[GameStates.Warmup] >= kPMConfig.MaxRupTick then
         self.m_UpdateTicks[GameStates.Warmup] = 0.0
@@ -109,6 +122,10 @@ function Match:OnWarmup(p_DeltaTime)
 end
 
 function Match:OnWarmupToKnife(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.WarmupToKnife] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxTransititionTime)
+    end
+
     -- TODO: Disable knife canned animations
 
     -- Kill all players disabling their ability to spawn
@@ -186,6 +203,10 @@ function Match:GetPlayerCounts()
 end
 
 function Match:OnKnifeRound(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.KnifeRound] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxKnifeRoundTime)
+    end
+
     if self.m_Attackers == nil then
         print("could not find attackers")
         return
@@ -211,8 +232,13 @@ function Match:OnKnifeRound(p_DeltaTime)
         s_Winner = s_AttackerId
     end
 
+    if s_Winner ~= TeamId.TeamNeutral then
+        self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
+        return
+    end
+
     -- Check to see if we have triggered a round end
-    if self.m_UpdateTicks[GameStates.KnifeRound] > kPMConfig.MaxKnifeRoundTime then
+    if self.m_UpdateTicks[GameStates.KnifeRound] >= kPMConfig.MaxKnifeRoundTime then
         self.m_UpdateTicks[GameStates.KnifeRound] = 0.0
 
         -- Trigger
@@ -225,9 +251,15 @@ function Match:OnKnifeRound(p_DeltaTime)
         self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
         return
     end
+
+    self.m_UpdateTicks[GameStates.KnifeRound] = self.m_UpdateTicks[GameStates.KnifeRound] + p_DeltaTime
 end
 
 function Match:OnKnifeToFirst(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.KnifeToFirst] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxTransititionTime)
+    end
+
     -- Kill all players before the first round
     self:KillAllPlayers(false)
 
@@ -257,6 +289,8 @@ function Match:SwitchTeams()
     self.m_Attackers = s_OldDefenders
     self.m_Defenders = s_OldAttackers
 
+    NetEvents:Broadcast("kPM:UpdateTeams", self.m_Attackers:GetTeamId(), self.m_Defenders:GetTeamId())
+
     print("switched teams")
 end
 
@@ -271,11 +305,19 @@ function Match:OnFirstHalf(p_DeltaTime)
         -- Respawn all players
         self:SpawnAllPlayers(false)
         
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+
         -- Manually update the ticks
         self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
 
         -- Switch to strat time, do not touch the FirstHalf timer, this ensures that we pick up "normal" round
         self.m_Server:ChangeGameState(GameStates.Strat)
+    end
+
+    -- TODO: FIXME
+    -- When start ends we need to update the UI's timer. Its kinda hacky now, needs a better solution
+    if self.m_UpdateTicks[GameStates.FirstHalf] >= 0.5 and self.m_UpdateTicks[GameStates.FirstHalf] <= 2.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxRoundTime)
     end
 
     -- Get the player counts
@@ -297,7 +339,7 @@ function Match:OnFirstHalf(p_DeltaTime)
         self.m_CurrentRound = self.m_CurrentRound + 1
 
         -- Set this round to be over
-        self.m_UpdateTicks[GameStates.FirstHalf] = kPMConfig.MaxRoundTime + 1.0
+        self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
         return
     end
     
@@ -312,15 +354,17 @@ function Match:OnFirstHalf(p_DeltaTime)
 
         -- Give a win to the attackers
         self.m_Attackers:RoundWon(self.m_CurrentRound)
+
+        -- Update the round count
+        self.m_CurrentRound = self.m_CurrentRound + 1
+
+        -- Set this round to be over
+        self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
         return
     end
 
-
-
     -- If the round is over
     if self.m_UpdateTicks[GameStates.FirstHalf] >= kPMConfig.MaxRoundTime then
-        self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
-
         -- If the defenders have any players alive, they win, simple
         if s_DefenderAliveCount > 0 then
             self.m_Defenders:RoundWon(self.m_CurrentRound)
@@ -330,8 +374,12 @@ function Match:OnFirstHalf(p_DeltaTime)
             self.m_Defenders:RoundLoss(self.m_CurrentRound)
         end
 
+        -- Update the round count
+        self.m_CurrentRound = self.m_CurrentRound + 1
+
         -- Leave the timer at 0.0 in the same state, it will catch at the top
         -- of this function and enable strat mode
+        self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
         return
     end
 
@@ -349,7 +397,11 @@ function Match:OnTimeout(p_DeltaTime)
 end
 
 function Match:OnStrat(p_DeltaTime)
-    if self.m_UpdateTicks[GameStates.Strat] > kPMConfig.MaxStratTime then
+    if self.m_UpdateTicks[GameStates.Strat] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxStratTime)
+    end
+
+    if self.m_UpdateTicks[GameStates.Strat] >= kPMConfig.MaxStratTime then
         self.m_UpdateTicks[GameStates.Strat] = 0.0
 
         -- Check the previous state
@@ -359,12 +411,44 @@ function Match:OnStrat(p_DeltaTime)
             return
         end
 
+        self:EnablePlayerInputs()
         self.m_Server:ChangeGameState(s_LastState)
         return
+    else
+        -- Maybe overkill to set it every tick, but remember, players can respawn or rejoin when Start
+        self:DisablePlayerInputs()
     end
 
     -- Update the strat tick counter
     self.m_UpdateTicks[GameStates.Strat] = self.m_UpdateTicks[GameStates.Strat] + p_DeltaTime
+end
+
+function Match:DisablePlayerInputs()
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        l_Player:EnableInput(EntryInputActionEnum.EIAFire, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAJump, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrowGrenade, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrottle, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAStrafe, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAMeleeAttack, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAChangePose, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAProne, false)
+    end
+end
+
+function Match:EnablePlayerInputs()
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        l_Player:EnableInput(EntryInputActionEnum.EIAFire, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAJump, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrowGrenade, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrottle, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAStrafe, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAMeleeAttack, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAChangePose, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAProne, true)
+    end
 end
 
 function Match:OnEndGame(p_DeltaTime)
@@ -539,7 +623,7 @@ function Match:SpawnAllPlayers(p_KnifeOnly)
 
     self:Cleanup();
 
-    local l_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
+    local s_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
 
     local s_Players = PlayerManager:GetPlayers()
     for l_Index, l_Player in ipairs(s_Players) do
@@ -552,7 +636,7 @@ function Match:SpawnAllPlayers(p_KnifeOnly)
             l_Player, 
             self:GetRandomSpawnpoint(l_Player), 
             CharacterPoseType.CharacterPoseType_Stand, 
-            l_SoldierBlueprint, 
+            s_SoldierBlueprint, 
             p_KnifeOnly,
             self.m_LoadoutManager:GetPlayerLoadout(l_Player)
         )
@@ -648,7 +732,8 @@ function Match:GetRandomSpawnpoint(p_Player)
     -- TODO: Don't spawn on an already taken spawnpoint
     
     local l_SpawnTrans = nil;
-    if p_Player.teamId == TeamId.Team1 then
+
+    if p_Player.teamId == self.m_Defenders:GetTeamId() then
         l_SpawnTrans = MapsConfig[l_LevelName]["DEF_SPAWNS"][ math.random( #MapsConfig[l_LevelName]["DEF_SPAWNS"] ) ]
     else
         l_SpawnTrans = MapsConfig[l_LevelName]["ATK_SPAWNS"][  math.random( #MapsConfig[l_LevelName]["ATK_SPAWNS"] ) ]

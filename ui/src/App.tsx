@@ -45,10 +45,17 @@ const App: React.FC = () => {
     */
     const [showHud, setShowHud] = useState<boolean>(false);
 
+    const [round, setRound] = useState<number>(0);
     const [roundWon, setRoundWon] = useState<boolean>(false);
     const [winningTeam, setWinningTeam] = useState<Teams>(Teams.Attackers);
     const [teamAttackersScore, setTeamAttackersScore] = useState<number>(0);
     const [teamDefendersScore, setTeamDefendersScore] = useState<number>(0);
+
+    window.UpdateHeader = function (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) {
+        setTeamAttackersScore(p_AttackerPoints);
+        setTeamDefendersScore(p_DefenderPoints);
+        setRound(p_Rounds);
+    }
 
     const [showTeamsPage, setShowTeamsPage] = useState<boolean>(false);
     const [selectedTeam, setSelectedTeam] = useState<Teams>(Teams.None);
@@ -127,9 +134,11 @@ const App: React.FC = () => {
     window.UpdatePlayers = function (p_Players: any, p_ClientPlayer: any) {
         setClientPlayer(p_ClientPlayer);
 
+        console.log(p_Players);
+
         setPlayers({
-            [Teams.Attackers]: p_Players[0],
-            [Teams.Defenders]: p_Players[1],
+            [Teams.Attackers]: p_Players["attackers"],
+            [Teams.Defenders]: p_Players["defenders"],
         });
     }
 
@@ -175,6 +184,7 @@ const App: React.FC = () => {
             <div id="debug" className="global">
                 <button onClick={() => setScene(GameStates.Warmup)}>Warmup</button>
                 <button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>
+                <button onClick={() => setScene(GameStates.Strat)}>Strat</button>
                 <button onClick={() => setShowHud(prevState => !prevState)}>ShowHeader On / Off</button>
                 <button onClick={() => setShowScoreboard(prevState => !prevState)}>Scoreboard On / Off</button>
                 <br />
@@ -194,7 +204,7 @@ const App: React.FC = () => {
                     teamDefendersScore={teamDefendersScore}
                     teamAttackersClan=""
                     teamDefendersClan=""
-                    round="0"
+                    round={round}
                 />
                 <GameStatesPage />
                 <TeamsScene
@@ -206,7 +216,13 @@ const App: React.FC = () => {
                     show={showLoadoutPage}
                     setShowLoadoutPage={(show) => setShowLoadoutPage(show)}
                 />
-                <Scoreboard showScoreboard={showScoreboard} teamAttackersScore={teamAttackersScore} teamDefendersScore={teamDefendersScore} players={players} gameState={scene} />
+                <Scoreboard 
+                    showScoreboard={showScoreboard}
+                    teamAttackersScore={teamAttackersScore}
+                    teamDefendersScore={teamDefendersScore}
+                    players={players}
+                    gameState={scene}
+                />
             </div>
         </div>
     );
@@ -223,5 +239,6 @@ declare global {
         UpdatePlayers: (p_Players: any, p_ClientPlayer: any) => void;
         OpenCloseScoreboard: () => void;
         RupInteractProgress: (m_RupHeldTime: number, MaxReadyUpTime: number) => void
+        UpdateHeader: (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) => void;
     }
 }

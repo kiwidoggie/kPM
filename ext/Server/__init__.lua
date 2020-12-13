@@ -20,8 +20,8 @@ function kPMServer:__init()
     self.m_GameState = GameStates.None
 
     -- Create our team information
-    self.m_Attackers = Team(TeamId.Team1, "Attackers", "nK")
-    self.m_Defenders = Team(TeamId.Team2, "Defenders", "mTw")
+    self.m_Attackers = Team(TeamId.Team2, "Attackers", "nK") -- RUS
+    self.m_Defenders = Team(TeamId.Team1, "Defenders", "mTw") -- US
 
     -- Loadout manager
     self.m_LoadoutManager = LoadoutManager()
@@ -252,7 +252,7 @@ function kPMServer:OnPlayerSetSelectedKit(p_Player, p_Data)
     
     self.m_LoadoutManager:SetPlayerLoadout(p_Player, l_Data)
 
-    if self.m_GameState == GameStates.Warmup or self.m_GameState == GameStates.None then
+    if self.m_GameState == GameStates.Warmup or self.m_GameState == GameStates.None or self.m_GameState == GameStates.Strat then
         -- If the current gamestate is Warmup or None we can switch kit instantly
         local l_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
 
@@ -396,6 +396,15 @@ function kPMServer:ChangeGameState(p_GameState)
     end
 
     NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
+end
+
+function kPMServer:SetClientTimer(p_Time)
+    if p_Time == nil then
+        print("err: no time to send to the clients")
+        return
+    end
+
+    NetEvents:Broadcast("kPM:StartWebUITimer", p_Time)
 end
 
 return kPMServer()

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import { Player, Players } from "../helpers/Player";
-import { Teams } from "../helpers/Teams";
 
 import './WarmupScene.scss';
 

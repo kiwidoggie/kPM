@@ -119,7 +119,44 @@ function LoadoutManager:GetPlayerLoadout(p_Player)
         return nil
     end
 
+    if self.m_PlayerLoadouts[p_Player.id] == nil then
+        self:SetDefaultLoadout(p_Player)
+    end
+
     return self.m_PlayerLoadouts[p_Player.id]
+end
+
+function LoadoutManager:SetDefaultLoadout(p_Player)
+    if p_Player == nil then
+        return
+    end
+
+    if p_Player.teamId == TeamId.TeamNeutral then
+        return
+    end
+
+    if self:IsKitAllowed("Assault") == false then
+        return
+    end
+
+    -- TODO: Should fix this for performance reasons, maybe not idk... ¯\_(ツ)_/¯
+    self.m_PlayerLoadouts[p_Player.id] = {
+        Class = "Assault",
+        Weapons = {
+            ResourceManager:SearchForDataContainer("Weapons/AK74M/U_AK74M"),
+            ResourceManager:SearchForDataContainer("Weapons/Taurus44/U_Taurus44"),
+            ResourceManager:SearchForDataContainer("Weapons/Gadgets/Ammobag/U_Ammobag"),
+            ResourceManager:SearchForDataContainer("Weapons/M67/U_M67"),
+            ResourceManager:SearchForDataContainer("Weapons/Knife/U_Knife")
+        },
+        Attachments = {
+            ResourceManager:SearchForDataContainer("Weapons/AK74M/U_AK74M_RX_01"),
+            ResourceManager:SearchForDataContainer("Weapons/AK74M/U_AK74M_Foregrip"),
+            ResourceManager:SearchForDataContainer("Weapons/AK74M/U_AK74M_Flashsuppressor")
+        }
+    }
+
+    print("info: loadout saved for player: " .. p_Player.name)
 end
 
 return LoadoutManager()
