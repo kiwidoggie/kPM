@@ -60,7 +60,7 @@ const Header: React.FC<Props> = ({ teamAttackersClan, teamDefendersClan, teamAtt
                                 }
                             </span>
                             <span className="round">
-                                {GameStatesRoundString[currentScene].replace('{round}', (round?.toString()??'0'))??''}
+                                {GameStatesRoundString[currentScene].replace('{round}', (round?.toString()??'1'))??''}
                             </span>
                         </div>
                         <div id="scoreDefenders">

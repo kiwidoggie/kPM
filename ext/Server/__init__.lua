@@ -260,7 +260,7 @@ function kPMServer:OnPlayerSetSelectedKit(p_Player, p_Data)
             self.m_Match:KillPlayer(p_Player, false)
         end
 
-        self.m_Match:SpawnPlayer(
+        self.m_Match:AddPlayerToSpawnQueue(
             p_Player, 
             self.m_Match:GetRandomSpawnpoint(p_Player), 
             CharacterPoseType.CharacterPoseType_Stand, 
@@ -391,7 +391,7 @@ function kPMServer:ChangeGameState(p_GameState)
     self.m_GameState = p_GameState
 
     -- Call UpdateAllowedGuids when Warmup ends
-    if p_GameState > 1 then
+    if p_GameState ~= GameStates.Warmup and s_OldGameState == GameStates.Warmup then
         self:UpdateAllowedGuids()
     end
 

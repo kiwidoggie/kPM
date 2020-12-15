@@ -16,15 +16,15 @@ export enum GameStates {
 }
 
 export var GameStatesRoundString = {
-    [GameStates.None]: 'Pre-Round',
+    [GameStates.None]: '',
     [GameStates.Warmup]: 'Warmup',
-    [GameStates.WarmupToKnife]: ' - ',
+    [GameStates.WarmupToKnife]: 'Pre-Knife',
     [GameStates.KnifeRound]: 'Knife',
-    [GameStates.KnifeToFirst]: ' - ',
+    [GameStates.KnifeToFirst]: 'First Half',
     [GameStates.FirstHalf]: 'Round {round}',
-    [GameStates.FirstToHalf]: ' - ',
-    [GameStates.HalfTime]: 'Half Time',
-    [GameStates.HalfToSecond]: ' - ',
+    [GameStates.FirstToHalf]: 'Half-Time',
+    [GameStates.HalfTime]: 'Half-Time',
+    [GameStates.HalfToSecond]: 'Second Half',
     [GameStates.SecondHalf]: 'Round {round}',
     [GameStates.Timeout]: 'Timeout',
     [GameStates.Strat]: 'Strat',

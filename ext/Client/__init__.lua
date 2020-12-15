@@ -181,7 +181,7 @@ end
 
 function kPMClient:OnLevelLoaded()
     NetEvents:Send("kPM:PlayerConnected")
-    WebUI:ExecuteJS("OpenCloseTeamMenu();")
+    WebUI:ExecuteJS("OpenCloseTeamMenu(true);")
 end
 
 function kPMClient:OnUpdateInput(p_DeltaTime)
@@ -319,6 +319,10 @@ function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
     local l_ScoreboardActive = self.m_ScoreboardActive
 
     local l_Player = PlayerManager:GetLocalPlayer()
+    
+    if l_Player == nil then
+        return
+    end
 
     -- If the player is holding the interact key then update our variables and clear it for the next frame
     if s_InteractLevel > 0.0 then
@@ -346,7 +350,7 @@ function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
         end
 
         if l_Player.alive == true then
-            WebUI:ExecuteJS("OpenCloseScoreboard()")
+            WebUI:ExecuteJS("OpenCloseScoreboard(" .. string.format('%s', l_ScoreboardActive) .. ")")
         end
     end
 end

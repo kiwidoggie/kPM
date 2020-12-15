@@ -59,6 +59,7 @@ const App: React.FC = () => {
 
     const [showTeamsPage, setShowTeamsPage] = useState<boolean>(false);
     const [selectedTeam, setSelectedTeam] = useState<Teams>(Teams.None);
+    const [showScoreboard, setShowScoreboard] = useState<boolean>(false);
 
     const setTeam = (team: Teams) => {
         setShowTeamsPage(false);
@@ -66,9 +67,13 @@ const App: React.FC = () => {
         setShowLoadoutPage(true);
     }
 
-    window.OpenCloseTeamMenu = function () {
+    window.OpenCloseTeamMenu = function (forceOpen?: boolean) {
         if (showLoadoutPage) {
             setShowLoadoutPage(false);
+        }
+
+        if (showScoreboard) {
+            setShowScoreboard(false);
         }
 
         if (!showTeamsPage) {
@@ -79,7 +84,11 @@ const App: React.FC = () => {
             WebUI.Call('ResetMouse');
         }
 
-        setShowTeamsPage(prevState => !prevState);
+        if(forceOpen) {
+            setShowTeamsPage(true);
+        } else {
+            setShowTeamsPage(prevState => !prevState);
+        }
     }
 
     const [showLoadoutPage, setShowLoadoutPage] = useState<boolean>(false);
@@ -87,6 +96,10 @@ const App: React.FC = () => {
     window.OpenCloseLoadoutMenu = function () {
         if (showTeamsPage) {
             setShowTeamsPage(false);
+        }
+
+        if (showScoreboard) {
+            setShowScoreboard(false);
         }
 
         if (!showLoadoutPage) {
@@ -106,12 +119,10 @@ const App: React.FC = () => {
         setTeamAttackersScore(p_Team1Score);
         setTeamDefendersScore(p_Team2Score);
     }
-
-    const [showScoreboard, setShowScoreboard] = useState<boolean>(false);
     
-    window.OpenCloseScoreboard = function () {
+    window.OpenCloseScoreboard = function (open: boolean) {
         if (!showTeamsPage && !showLoadoutPage) {
-            setShowScoreboard(prevState => !prevState);
+            setShowScoreboard(open);
         }
     }
 
@@ -235,9 +246,9 @@ declare global {
         ChangeState: (p_GameState: GameStates) => void;
         UpdateRoundEndStatus: (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) => void;
         OpenCloseLoadoutMenu: () => void;
-        OpenCloseTeamMenu: () => void;
+        OpenCloseTeamMenu: (forceOpen?: boolean) => void;
         UpdatePlayers: (p_Players: any, p_ClientPlayer: any) => void;
-        OpenCloseScoreboard: () => void;
+        OpenCloseScoreboard: (open: boolean) => void;
         RupInteractProgress: (m_RupHeldTime: number, MaxReadyUpTime: number) => void
         UpdateHeader: (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) => void;
     }
