@@ -12,6 +12,24 @@ function UICleanup:__init()
             hook:Return(nil)
             return
         end
+        
+	    if 	screen.name == 'UI/Flow/Screen/HudTDMScreen' then
+            local clone = screen:Clone(screen.instanceGuid)
+            local screenClone = UIGraphAsset(clone)
+
+            for i = #screen.nodes, 1, -1 do
+                local node = screen.nodes[i]
+                if node ~= nil then
+                    if node.name == 'TicketCounter' or
+                        node.name == 'HudBackgroundWidget' then
+                        screenClone.nodes:erase(i)
+                    end
+                end
+            end
+
+            hook:Pass(screenClone, graphPriority, parentGraph)
+            return
+        end
     end)
 
     Events:Subscribe('Partition:Loaded', function(partition)
@@ -32,7 +50,6 @@ function UICleanup:__init()
                 s_Instance.contrast = Vec3(1, 1, 1)
                 s_Instance.saturation = Vec3(1, 1, 1)
             end
-    
             if instance.instanceGuid == Guid('36C2CEAE-27D2-45F3-B3F5-B831FE40ED9B') then -- FX/VisualEnviroments/OutofCombat/OutofCombat
                 local s_Instance = FilmGrainComponentData(instance)
                 s_Instance:MakeWritable()

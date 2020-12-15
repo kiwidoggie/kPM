@@ -3,6 +3,7 @@ class "kPMClient"
 require("ClientCommands")
 require("Freecam")
 require("UICleanup")
+require("StratVision")
 require("__shared/GameStates")
 require("__shared/kPMConfig")
 require("__shared/MapsConfig")
@@ -44,6 +45,8 @@ function kPMClient:__init()
 
     -- Freecamera
     self.m_FreeCam = FreeCam()
+
+    self.m_StatVision = StratVision()
 end
 
 -- ==========
@@ -342,7 +345,9 @@ function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
             self:OnUpdateScoreboard(l_Player)
         end
 
-        WebUI:ExecuteJS("OpenCloseScoreboard()")
+        if l_Player.alive == true then
+            WebUI:ExecuteJS("OpenCloseScoreboard()")
+        end
     end
 end
 
@@ -400,6 +405,12 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     print("info: gamestate " .. p_OldGameState .. " -> " .. p_GameState)
     self.m_GameState = p_GameState
 
+    if p_GameState == GameStates.Strat then
+        self.m_StatVision:SetStratVision()
+    else
+        self.m_StatVision:RemoveStratVision()
+    end
+
     -- Update the WebUI
     WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
 end
@@ -422,6 +433,10 @@ function kPMClient:OnUpdateTeams(p_AttackersTeamId, p_DefendersTeamId)
 end
 
 function kPMClient:OnUpdateScoreboard(p_Player)
+    if p_Player == nil then
+        return
+    end
+    
     print("OnUpdateScoreboard")
 
     local l_PlayerListDefenders = PlayerManager:GetPlayersByTeam(self.m_DefendersTeamId)
@@ -505,7 +520,7 @@ function kPMClient:OnUpdateScoreboard(p_Player)
         ["isReady"] = l_Ready,
         ["team"] = p_Player.teamId,
     }
-    
+
     WebUI:ExecuteJS(string.format("UpdatePlayers(%s, %s)", json.encode(l_PlayersObject), json.encode(l_PlayerClient)))
 end
 

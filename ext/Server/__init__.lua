@@ -20,8 +20,8 @@ function kPMServer:__init()
     self.m_GameState = GameStates.None
 
     -- Create our team information
-    self.m_Attackers = Team(TeamId.Team2, "Attackers", "nK") -- RUS
-    self.m_Defenders = Team(TeamId.Team1, "Defenders", "mTw") -- US
+    self.m_Attackers = Team(TeamId.Team2, "Attackers", "") -- RUS
+    self.m_Defenders = Team(TeamId.Team1, "Defenders", "") -- US
 
     -- Loadout manager
     self.m_LoadoutManager = LoadoutManager()

@@ -35,7 +35,7 @@ kPMConfig =
     MatchDefaultRounds = 24,
 
     -- Minimum of 2 players in order to start a match
-    MinPlayerCount = 2,
+    MinPlayerCount = 1,
 
     -- Minimum clan tag length
     MinClanTagLength = 1,

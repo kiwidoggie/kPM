@@ -404,6 +404,9 @@ function Match:OnStrat(p_DeltaTime)
     if self.m_UpdateTicks[GameStates.Strat] >= kPMConfig.MaxStratTime then
         self.m_UpdateTicks[GameStates.Strat] = 0.0
 
+        -- One more cleanup, they can respawn and change / drop kits... dont leave those kits on the floor
+        self:Cleanup();
+
         -- Check the previous state
         local s_LastState = self.m_LastState
         if s_LastState ~= GameStates.KnifeToFirst and s_LastState ~= GameStates.HalfToSecond and s_LastState ~= GameStates.FirstHalf and s_LastState ~= GameStates.SecondHalf then
@@ -590,30 +593,32 @@ function Match:KillPlayer(p_Player, p_IsAllowedToSpawn)
         return
     end
 
-     -- Disable players ability to spawn
-     p_Player.isAllowedToSpawn = p_IsAllowedToSpawn
+    -- Disable players ability to spawn
+    p_Player.isAllowedToSpawn = p_IsAllowedToSpawn
 
-     -- If the player is not alive skip on
-     if not p_Player.alive then
-         return
-     end
+    -- If the player is not alive skip on
+    if not p_Player.alive then
+        return
+    end
 
-     -- Get out soldier
-     local l_Soldier = p_Player.soldier
-     local l_Corpse = p_Player.corpse
-     local l_Name = p_Player.name
+    -- Get out soldier
+    local l_Soldier = p_Player.soldier
+    local l_Corpse = p_Player.corpse
+    local l_Name = p_Player.name
 
-     -- Validate our soldier
-     if l_Soldier ~= nil then
-         print("killing soldier " .. l_Name)
-         l_Soldier:Kill()
-     end
+    -- Validate our soldier
+    if l_Soldier ~= nil then
+        print("killing soldier " .. l_Name)
+        l_Soldier:Kill()
+    end
 
-     -- If the player is a corpse force dead
-     if l_Corpse ~= nil then
-         print("killing corpse " .. l_Name)
-         l_Corpse:ForceDead()
-     end
+    -- If the player is a corpse force dead
+    if l_Corpse ~= nil then
+        print("killing corpse " .. l_Name)
+        l_Corpse:ForceDead()
+    end
+    
+    --RCON:SendCommand('admin.killPlayer', {l_Name})
 end
 
 function Match:SpawnAllPlayers(p_KnifeOnly)
