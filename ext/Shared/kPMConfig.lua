@@ -32,7 +32,7 @@ kPMConfig =
     -- ==========
     -- Server configuration options
     -- ==========
-    MatchDefaultRounds = 24,
+    MatchDefaultRounds = 12,
 
     -- Minimum of 2 players in order to start a match
     MinPlayerCount = 1,
@@ -51,4 +51,7 @@ kPMConfig =
 
     -- Round time (default: 10 minutes)
     MaxRoundTime = 300.0,
+
+    -- Game end time (default: 20 sec)
+    MaxEndgameTime = 20.0,
 }

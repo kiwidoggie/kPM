@@ -7,7 +7,6 @@ import RoundEndInfoBox from "./components/RoundEndInfoBox";
 
 import TeamsScene from "./scenes/TeamsScene";
 import WarmupScene from "./scenes/WarmupScene";
-//import EndgameScene from "./scenes/EndgameScene";
 import KnifeRoundScene from "./scenes/KnifeRoundScene";
 import LoadoutScene from "./scenes/LoadoutScene";
 
@@ -18,6 +17,7 @@ import { Player, Players } from "./helpers/Player";
 
 import './Animations.scss';
 import './Global.scss';
+import GameEndInfoBox from "./components/GameEndInfoBox";
 
 const App: React.FC = () => {
     /*
@@ -131,6 +131,17 @@ const App: React.FC = () => {
             setWinningTeam(Teams.Defenders);
         }
     }
+
+    const [gameWon, setGameWon] = useState<boolean|null>(null);
+    const [gameWinningTeam, setGameWinningTeam] = useState<Teams|null>(null);
+    window.SetGameEnd = function (p_GameWon: boolean, p_WinningTeam: string) {
+        setGameWon(p_GameWon);
+        if(p_WinningTeam === 'attackers') {
+            setGameWinningTeam(Teams.Attackers);
+        } else if(p_WinningTeam === 'defenders') {
+            setGameWinningTeam(Teams.Defenders);
+        }
+    }
     
     window.OpenCloseScoreboard = function (open: boolean) {
         if (!showTeamsPage && !showLoadoutPage) {
@@ -208,6 +219,8 @@ const App: React.FC = () => {
                 <button onClick={() => setShowHud(prevState => !prevState)}>ShowHeader On / Off</button>
                 <button onClick={() => setShowScoreboard(prevState => !prevState)}>Scoreboard On / Off</button>
                 <button onClick={() => setShowRoundEndInfoBox(prevState => !prevState)}>RoundEndInfo On / Off</button>
+                <button onClick={() => setGameWon(true)}>setGameWon</button>
+                <button onClick={() => setGameWinningTeam(Teams.Attackers)}>Attackers won the game</button>
                 <br />
                 <button onClick={() => setRoundWon(true)}>Win</button>
                 <button onClick={() => setRoundWon(false)}>Lose</button>
@@ -245,12 +258,22 @@ const App: React.FC = () => {
                     gameState={scene}
                 />
 
-                {showRoundEndInfoBox &&
-                    <RoundEndInfoBox 
-                        roundWon={roundWon}
-                        winningTeam={winningTeam}
-                        afterDisaper={() => setShowRoundEndInfoBox(false)}
+                {gameWon !== null 
+                ?
+                    <GameEndInfoBox
+                        gameWon={gameWon}
+                        winningTeam={gameWinningTeam}
                         />
+                :
+                    <>
+                        {showRoundEndInfoBox &&
+                            <RoundEndInfoBox 
+                                roundWon={roundWon}
+                                winningTeam={winningTeam}
+                                afterDisaper={() => setShowRoundEndInfoBox(false)}
+                                />
+                        }
+                    </>
                 }
             </div>
         </div>
@@ -271,5 +294,6 @@ declare global {
         UpdateHeader: (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) => void;
         ShowHideRoundEndInfoBox: (open: boolean) => void;
         UpdateRoundEndInfoBox: (p_RoundWon: boolean, p_WinningTeam: string) => void;
+        SetGameEnd: (p_GameWon: boolean, p_WinningTeam: string) => void;
     }
 }

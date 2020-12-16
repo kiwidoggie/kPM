@@ -118,6 +118,7 @@ function kPMClient:RegisterEvents()
     self.m_StartWebUITimerEvent = NetEvents:Subscribe("kPM:StartWebUITimer", self, self.OnStartWebUITimer)
     self.m_UpdateHeaderEvent = NetEvents:Subscribe("kPM:UpdateHeader", self, self.OnUpdateHeader)
     self.m_SetRoundEndInfoBoxEvent = NetEvents:Subscribe("kPM:SetRoundEndInfoBox", self, self.OnSetRoundEndInfoBox)
+    self.m_SetGameEndEvent = NetEvents:Subscribe("kPM:SetGameEnd", self, self.OnSetGameEnd)
 
     self.m_UpdateTeamsEvent = NetEvents:Subscribe("kPM:UpdateTeams", self, self.OnUpdateTeams)
 
@@ -545,6 +546,25 @@ function kPMClient:OnSetRoundEndInfoBox(p_WinnerTeamId)
     end
     
     WebUI:ExecuteJS("ShowHideRoundEndInfoBox(true)")
+end
+
+function kPMClient:OnSetGameEnd(p_WinnerTeamId)
+    local isPlayerWinner = false
+
+    if p_WinnerTeamId == nil then
+        WebUI:ExecuteJS('SetGameEnd('.. tostring(isPlayerWinner) .. ', "draw");')
+    end
+
+    local l_Player = PlayerManager:GetLocalPlayer()
+    if l_Player.teamId == p_WinnerTeamId then
+        isPlayerWinner = true
+    end
+    
+    if p_WinnerTeamId == self.m_AttackersTeamId then
+        WebUI:ExecuteJS('SetGameEnd('.. tostring(isPlayerWinner) .. ', "attackers");')
+    else
+        WebUI:ExecuteJS('SetGameEnd('.. tostring(isPlayerWinner) .. ', "defenders");')
+    end
 end
 
 function kPMClient:OnCleanup(p_EntityType)

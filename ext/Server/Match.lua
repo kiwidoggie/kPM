@@ -35,14 +35,14 @@ function Match:__init(p_Server, p_TeamAttackers, p_TeamDefenders, p_RoundCount, 
     self.m_UpdateStates[GameStates.KnifeRound] = self.OnKnifeRound
     self.m_UpdateStates[GameStates.KnifeToFirst] = self.OnKnifeToFirst
     self.m_UpdateStates[GameStates.FirstHalf] = self.OnFirstHalf
-    --self.m_UpdateStates[GameStates.FirstToHalf] = self.OnFirstToHalf -- TODO: FIXME
-    self.m_UpdateStates[GameStates.HalfTime] = self.OnHalfTime -- TODO: FIXME
-    self.m_UpdateStates[GameStates.HalfToSecond] = self.OnHalfToSecond -- TODO: FIXME
-    self.m_UpdateStates[GameStates.SecondHalf] = self.OnSecondHalf -- TODO: FIXME
+    self.m_UpdateStates[GameStates.FirstToHalf] = self.OnFirstToHalf
+    self.m_UpdateStates[GameStates.HalfTime] = self.OnHalfTime
+    self.m_UpdateStates[GameStates.HalfToSecond] = self.OnHalfToSecond
+    self.m_UpdateStates[GameStates.SecondHalf] = self.OnSecondHalf
     self.m_UpdateStates[GameStates.Timeout] = self.OnTimeout -- TODO: FIXME
     self.m_UpdateStates[GameStates.Strat] = self.OnStrat
     --self.m_UpdateStates[GameStates.NadeTraining] = self.OnNadeTraining -- TODO: FIXME
-    self.m_UpdateStates[GameStates.EndGame] = self.OnEndGame -- TODO: FIXME
+    self.m_UpdateStates[GameStates.EndGame] = self.OnEndGame
 
     -- State ticks
     self.m_UpdateTicks = { }
@@ -67,6 +67,8 @@ function Match:__init(p_Server, p_TeamAttackers, p_TeamDefenders, p_RoundCount, 
     self.m_SpawnQueue = { }
     self.m_UpdateManagerUpdateEvent = Events:Subscribe("UpdateManager:Update", self, self.OnUpdateManagerUpdate)
 
+    self.m_RestartQueue = false
+
     print("init: " .. self.m_UpdateTicks[GameStates.EndGame])
 end
 
@@ -78,6 +80,11 @@ function Match:OnUpdateManagerUpdate(p_DeltaTime, p_UpdatePass)
         
         if not TableHelper:empty(self.m_SpawnQueue) then
             self:SpawnQueuedPlayers()
+        end
+
+        if self.m_RestartQueue then
+            -- TODO: Dont show the endscreen, just restart the map or something like that!
+            RCON:SendCommand('mapList.endround', {"1"})
         end
     end
 end
@@ -351,6 +358,8 @@ function Match:OnFirstHalf(p_DeltaTime)
 
             self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
 
+            self:IsRoundHalfTime()
+
             -- Set this round to be over
             self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
             return
@@ -372,6 +381,8 @@ function Match:OnFirstHalf(p_DeltaTime)
             self.m_CurrentRound = self.m_CurrentRound + 1
 
             self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+
+            self:IsRoundHalfTime()
 
             -- Set this round to be over
             self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
@@ -396,6 +407,8 @@ function Match:OnFirstHalf(p_DeltaTime)
             -- Update the round count
             self.m_CurrentRound = self.m_CurrentRound + 1
 
+            self:IsRoundHalfTime()
+
             -- Leave the timer at 0.0 in the same state, it will catch at the top
             -- of this function and enable strat mode
             self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
@@ -407,10 +420,174 @@ function Match:OnFirstHalf(p_DeltaTime)
     self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
 end
 
+function Match:IsRoundHalfTime()
+    if self.m_CurrentRound >= (self.m_RoundCount / 2) then
+        self.m_Server:ChangeGameState(GameStates.FirstToHalf)
+    end
+end
+
+function Match:OnFirstToHalf(p_DeltaTime)
+    self:KillAllPlayers(false)
+    self.m_Server:ChangeGameState(GameStates.HalfTime)
+end
+
 function Match:OnHalfTime(p_DeltaTime)
+    self:SwitchTeams()
+    self.m_Server:ChangeGameState(GameStates.HalfToSecond)
+end
+
+function Match:OnHalfToSecond(p_DeltaTime)
+    self.m_Server:ChangeGameState(GameStates.SecondHalf)
 end
 
 function Match:OnSecondHalf(p_DeltaTime)
+    -- Handle the case of when a round first starts, otherwise it will run "normal" code
+    if self.m_UpdateTicks[GameStates.SecondHalf] == 0.0 then
+        -- Switch to strat time for 5 seconds
+
+        -- Kill all players
+        self:KillAllPlayers(false)
+
+        -- Respawn all players
+        self:SpawnAllPlayers(false)
+        
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+
+        -- Manually update the ticks
+        self.m_UpdateTicks[GameStates.SecondHalf] = self.m_UpdateTicks[GameStates.SecondHalf] + p_DeltaTime
+
+        -- Switch to strat time, do not touch the SecondHalf timer, this ensures that we pick up "normal" round
+        self.m_Server:ChangeGameState(GameStates.Strat)
+    end
+
+    -- TODO: FIXME
+    -- When start ends we need to update the UI's timer. Its kinda hacky now, needs a better solution
+    if self.m_UpdateTicks[GameStates.SecondHalf] >= 0.5 and self.m_UpdateTicks[GameStates.SecondHalf] <= 2.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxRoundTime)
+    end
+
+    if TableHelper:empty(self.m_SpawnQueue) then
+        -- Get the player counts
+        local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
+
+        -- The round is running as expected, check the ending conditions
+
+        -- Which are if all attackers are dead
+        if s_AttackerAliveCount == 0 then
+            print("all attackers are dead, round is over")
+
+            -- Give a round to the defenders
+            self.m_Defenders:RoundWon(self.m_CurrentRound)
+
+            -- Give a loss to the attackers
+            self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+
+            self:IsAnyTeamWon()
+
+            -- Set this round to be over
+            self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+            return
+        end
+        
+        -- TODO: If the objectives have been completed
+
+        -- If all defenders are dead
+        if s_DefenderAliveCount == 0 then
+            print("all defenders are dead, round is over")
+
+            -- Give a loss to the defenders
+            self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+            -- Give a win to the attackers
+            self.m_Attackers:RoundWon(self.m_CurrentRound)
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+
+            self:IsAnyTeamWon()
+
+            -- Set this round to be over
+            self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+            return
+        end
+
+        -- If the round is over
+        if self.m_UpdateTicks[GameStates.SecondHalf] >= kPMConfig.MaxRoundTime then
+            -- If the defenders have any players alive, they win, simple
+            if s_DefenderAliveCount > 0 then
+                self.m_Defenders:RoundWon(self.m_CurrentRound)
+                self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+            else
+                self.m_Attackers:RoundWon(self.m_CurrentRound)
+                self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+            end
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self:IsAnyTeamWon()
+
+            -- Leave the timer at 0.0 in the same state, it will catch at the top
+            -- of this function and enable strat mode
+            self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+            return
+        end
+    end
+
+    -- Update the tick
+    self.m_UpdateTicks[GameStates.SecondHalf] = self.m_UpdateTicks[GameStates.SecondHalf] + p_DeltaTime
+end
+
+function Match:IsAnyTeamWon()
+    if self.m_Attackers:CountRoundWon() >= (self.m_RoundCount / 2 + 1) or 
+        self.m_Defenders:CountRoundWon() >= (self.m_RoundCount / 2 + 1) then
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+        self.m_Server:ChangeGameState(GameStates.EndGame)
+        return
+    end
+
+    if self.m_CurrentRound >= self.m_RoundCount then
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+        self.m_Server:ChangeGameState(GameStates.EndGame)
+        return
+    end
+end
+
+function Match:OnEndGame(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.EndGame] == 0.0 then
+        if self.m_Attackers:CountRoundWon() == self.m_Defenders:CountRoundWon() then
+            print('Game end: Draw')
+            self.m_Server:SetGameEnd(nil)
+        else
+            if self.m_Attackers:CountRoundWon() > self.m_Defenders:CountRoundWon() then
+                print('Game end: Attackers win')
+                self.m_Server:SetGameEnd(self.m_Attackers:GetTeamId())
+            else
+                print('Game end: Defenders win')
+                self.m_Server:SetGameEnd(self.m_Defenders:GetTeamId())
+            end
+        end
+
+        self.m_Server:SetClientTimer(kPMConfig.MaxEndgameTime)
+    end
+
+    if self.m_UpdateTicks[GameStates.EndGame] >= kPMConfig.MaxEndgameTime then
+        -- Set the restart queue so we can trigger an rcon restart or something like that
+        self.m_RestartQueue = true
+    end
+
+    self.m_UpdateTicks[GameStates.EndGame] = self.m_UpdateTicks[GameStates.EndGame] + p_DeltaTime
 end
 
 function Match:OnTimeout(p_DeltaTime)
@@ -472,9 +649,6 @@ function Match:EnablePlayerInputs()
         l_Player:EnableInput(EntryInputActionEnum.EIAChangePose, true)
         l_Player:EnableInput(EntryInputActionEnum.EIAProne, true)
     end
-end
-
-function Match:OnEndGame(p_DeltaTime)
 end
 
 function Match:ClearReadyUpState()
@@ -723,7 +897,7 @@ function Match:SpawnPlayer(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOn
 
     local l_SoldierAsset = nil
     local l_Appearance = nil
-    if p_Player.teamId == TeamId.Team1 then
+    if p_Player.teamId == self.m_Defenders:GetTeamId() then
         -- US
         l_SoldierAsset = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["DEFENDER"]["KIT"])
         l_Appearance = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["DEFENDER"]["APPEARANCE"])
@@ -732,6 +906,7 @@ function Match:SpawnPlayer(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOn
         l_SoldierAsset = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["ATTACKER"]["KIT"])
         l_Appearance = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["ATTACKER"]["APPEARANCE"])
     end
+
     if l_SoldierAsset == nil or l_Appearance == nil then
         return
     end

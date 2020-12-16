@@ -416,4 +416,9 @@ function kPMServer:SetRoundEndInfoBox(p_WinnerTeamId)
     NetEvents:Broadcast("kPM:SetRoundEndInfoBox", p_WinnerTeamId)
 end
 
+function kPMServer:SetGameEnd(p_WinnerTeamId)
+    -- Watch out, this can be nil if the game is draw
+    NetEvents:Broadcast("kPM:SetGameEnd", p_WinnerTeamId)
+end
+
 return kPMServer()

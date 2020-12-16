@@ -239,7 +239,7 @@ h6 {
     align-items: center;
     justify-content: center;
     flex-flow: column;
-    border: .15vw solid var(--primary);
+    border: .15vw solid #fff;
 
     &.defenders {
         border-color: var(--primary);
@@ -274,5 +274,12 @@ h6 {
         font-size: 1.4vw;
         font-weight: 400;
         margin-bottom: 1vh;
+    }
+
+    &.gameEndInfoBox {
+        h1 {
+            text-transform: uppercase;
+            font-size: 2.3vw;
+        }
     }
 }
