@@ -6,21 +6,21 @@ This mod is inspried by the older Call of Duty 4 Promod, but you know for Venice
 
 [ ] Visual Tweaks
 - Should be saveable/slightly configurable
-- Can give FPS benefits
+- ~~Can give FPS benefits~~
 
-[ ] Match/Round
+[ ] ~~Match/Round~~
 
 [ ] Customized scoreboard
-* Warmup
-* First Half
-* Second Half
+* ~~Warmup~~
+* ~~First Half~~
+* ~~Second Half~~
 * Timeout
-* Strat
+* ~~Strat~~
 
-[ ] Ready Up Period
-* Wait's for all players to ready up before switching
-* Visible "You are ready/not ready"
-* Can see everyones RUP status on the scoreboard
+[ ] ~~Ready Up Period~~
+* ~~Wait's for all players to ready up before switching~~
+* ~~Visible "You are ready/not ready"~~
+* ~~Can see everyones RUP status on the scoreboard~~
 
 [ ] Enable/Disable death chat
 
@@ -38,8 +38,8 @@ This mod is inspried by the older Call of Duty 4 Promod, but you know for Venice
 [ ] Strat mode
 * Camera to follow grenades when tossed
 
-[ ] Strat time (before a round)
-* 10s where teams can discuss their approach
+[ ] ~~Strat time (before a round)~~
+* ~~10s where teams can discuss their approach~~
 
 [ ] Multiple game modes
 * Comp public (snipers/restricted weapons done on current player count)
