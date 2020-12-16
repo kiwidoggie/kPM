@@ -312,7 +312,6 @@ function Match:OnFirstHalf(p_DeltaTime)
         -- Kill all players
         self:KillAllPlayers(false)
 
-        print('most haltam meg?')
         -- Respawn all players
         self:SpawnAllPlayers(false)
         
