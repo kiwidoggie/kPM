@@ -407,4 +407,13 @@ function kPMServer:SetClientTimer(p_Time)
     NetEvents:Broadcast("kPM:StartWebUITimer", p_Time)
 end
 
+function kPMServer:SetRoundEndInfoBox(p_WinnerTeamId)
+    if p_WinnerTeamId == nil then
+        print("err: no winner to send to the clients")
+        return
+    end
+
+    NetEvents:Broadcast("kPM:SetRoundEndInfoBox", p_WinnerTeamId)
+end
+
 return kPMServer()

@@ -227,12 +227,12 @@ h6 {
     }
 }
 
-.endgameBox {
+.roundEndInfoBox {
     position: absolute;
-    left: 50%;
+    left: calc(50% - 13vw);
     transform: translateX(-50%);
     top: 12.5vh;
-    background: rgba(0,0,0,.7);
+    background: rgba(0,0,0,.6);
     width: 26vw;
     height: 15vh;
     display: flex;

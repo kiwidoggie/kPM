@@ -3,15 +3,18 @@ import React, { useState } from "react";
 import Header from "./Header";
 import Scoreboard from "./Scoreboard";
 
+import RoundEndInfoBox from "./components/RoundEndInfoBox";
+
 import TeamsScene from "./scenes/TeamsScene";
 import WarmupScene from "./scenes/WarmupScene";
-import EndgameScene from "./scenes/EndgameScene";
+//import EndgameScene from "./scenes/EndgameScene";
 import KnifeRoundScene from "./scenes/KnifeRoundScene";
 import LoadoutScene from "./scenes/LoadoutScene";
 
 import { GameStates } from './helpers/GameStates';
 import { Teams } from "./helpers/Teams";
 import { Player, Players } from "./helpers/Player";
+
 
 import './Animations.scss';
 import './Global.scss';
@@ -113,11 +116,20 @@ const App: React.FC = () => {
         setShowLoadoutPage(prevState => !prevState);
     }
 
-    window.UpdateRoundEndStatus = function (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) {
+
+    const [showRoundEndInfoBox, setShowRoundEndInfoBox] = useState<boolean>(false);
+
+    window.ShowHideRoundEndInfoBox = function (open: boolean) {
+        setShowRoundEndInfoBox(open);
+    }
+
+    window.UpdateRoundEndInfoBox = function (p_RoundWon: boolean, p_WinningTeam: string) {
         setRoundWon(p_RoundWon);
-        setWinningTeam(p_WinningTeam);
-        setTeamAttackersScore(p_Team1Score);
-        setTeamDefendersScore(p_Team2Score);
+        if(p_WinningTeam === 'attackers') {
+            setWinningTeam(Teams.Attackers);
+        } else {
+            setWinningTeam(Teams.Defenders);
+        }
     }
     
     window.OpenCloseScoreboard = function (open: boolean) {
@@ -144,9 +156,6 @@ const App: React.FC = () => {
 
     window.UpdatePlayers = function (p_Players: any, p_ClientPlayer: any) {
         setClientPlayer(p_ClientPlayer);
-
-        console.log(p_Players);
-
         setPlayers({
             [Teams.Attackers]: p_Players["attackers"],
             [Teams.Defenders]: p_Players["defenders"],
@@ -171,13 +180,13 @@ const App: React.FC = () => {
             case GameStates.KnifeRound:
                 return <KnifeRoundScene />;
 
-            case GameStates.EndGame:
+            /*case GameStates.EndGame:
                 return <EndgameScene
                     roundWon={roundWon}
                     winningTeam={winningTeam}
                     teamAttackersScore={teamAttackersScore}
                     teamDefendersScore={teamDefendersScore}
-                />;
+                />;*/
         }
     }
 
@@ -194,10 +203,11 @@ const App: React.FC = () => {
             
             <div id="debug" className="global">
                 <button onClick={() => setScene(GameStates.Warmup)}>Warmup</button>
-                <button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>
+                {/*<button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>*/}
                 <button onClick={() => setScene(GameStates.Strat)}>Strat</button>
                 <button onClick={() => setShowHud(prevState => !prevState)}>ShowHeader On / Off</button>
                 <button onClick={() => setShowScoreboard(prevState => !prevState)}>Scoreboard On / Off</button>
+                <button onClick={() => setShowRoundEndInfoBox(prevState => !prevState)}>RoundEndInfo On / Off</button>
                 <br />
                 <button onClick={() => setRoundWon(true)}>Win</button>
                 <button onClick={() => setRoundWon(false)}>Lose</button>
@@ -234,6 +244,14 @@ const App: React.FC = () => {
                     players={players}
                     gameState={scene}
                 />
+
+                {showRoundEndInfoBox &&
+                    <RoundEndInfoBox 
+                        roundWon={roundWon}
+                        winningTeam={winningTeam}
+                        afterDisaper={() => setShowRoundEndInfoBox(false)}
+                        />
+                }
             </div>
         </div>
     );
@@ -244,12 +262,14 @@ export default App;
 declare global {
     interface Window {
         ChangeState: (p_GameState: GameStates) => void;
-        UpdateRoundEndStatus: (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) => void;
+        //UpdateRoundEndStatus: (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) => void;
         OpenCloseLoadoutMenu: () => void;
         OpenCloseTeamMenu: (forceOpen?: boolean) => void;
         UpdatePlayers: (p_Players: any, p_ClientPlayer: any) => void;
         OpenCloseScoreboard: (open: boolean) => void;
         RupInteractProgress: (m_RupHeldTime: number, MaxReadyUpTime: number) => void
         UpdateHeader: (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) => void;
+        ShowHideRoundEndInfoBox: (open: boolean) => void;
+        UpdateRoundEndInfoBox: (p_RoundWon: boolean, p_WinningTeam: string) => void;
     }
 }

@@ -117,6 +117,7 @@ function kPMClient:RegisterEvents()
     
     self.m_StartWebUITimerEvent = NetEvents:Subscribe("kPM:StartWebUITimer", self, self.OnStartWebUITimer)
     self.m_UpdateHeaderEvent = NetEvents:Subscribe("kPM:UpdateHeader", self, self.OnUpdateHeader)
+    self.m_SetRoundEndInfoBoxEvent = NetEvents:Subscribe("kPM:SetRoundEndInfoBox", self, self.OnSetRoundEndInfoBox)
 
     self.m_UpdateTeamsEvent = NetEvents:Subscribe("kPM:UpdateTeams", self, self.OnUpdateTeams)
 
@@ -350,7 +351,7 @@ function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
         end
 
         if l_Player.alive == true then
-            WebUI:ExecuteJS("OpenCloseScoreboard(" .. string.format('%s', l_ScoreboardActive) .. ")")
+            WebUI:ExecuteJS("OpenCloseScoreboard(" .. string.format('%s', l_ScoreboardActive) .. ");")
         end
     end
 end
@@ -421,9 +422,6 @@ end
 
 function kPMClient:OnUpdateHeader(p_AttackerPoints, p_DefenderPoints, p_Rounds)
     WebUI:ExecuteJS("UpdateHeader(" .. p_AttackerPoints .. ", " .. p_DefenderPoints .. ", " .. (p_Rounds + 1) .. ");")
-    print('Attacker points: ' .. p_AttackerPoints)
-    print('Defender points: ' .. p_DefenderPoints)
-    print('Rounds: ' .. (p_Rounds + 1))
 end
 
 function kPMClient:OnUpdateTeams(p_AttackersTeamId, p_DefendersTeamId)
@@ -525,20 +523,34 @@ function kPMClient:OnUpdateScoreboard(p_Player)
         ["team"] = p_Player.teamId,
     }
 
-    WebUI:ExecuteJS(string.format("UpdatePlayers(%s, %s)", json.encode(l_PlayersObject), json.encode(l_PlayerClient)))
+    WebUI:ExecuteJS(string.format("UpdatePlayers(%s, %s);", json.encode(l_PlayersObject), json.encode(l_PlayerClient)))
 end
 
 function kPMClient:OnStartWebUITimer(p_Time)
-    WebUI:ExecuteJS(string.format("SetTimer(%s)", p_Time))
+    WebUI:ExecuteJS(string.format("SetTimer(%s);", p_Time))
+end
+
+function kPMClient:OnSetRoundEndInfoBox(p_WinnerTeamId)
+    local isPlayerWinner = false
+
+    local l_Player = PlayerManager:GetLocalPlayer()
+    if l_Player.teamId == p_WinnerTeamId then
+        isPlayerWinner = true
+    end
+    
+    if p_WinnerTeamId == self.m_AttackersTeamId then
+        WebUI:ExecuteJS('UpdateRoundEndInfoBox('.. tostring(isPlayerWinner) .. ', "attackers");')
+    else
+        WebUI:ExecuteJS('UpdateRoundEndInfoBox('.. tostring(isPlayerWinner) .. ', "defenders");')
+    end
+    
+    WebUI:ExecuteJS("ShowHideRoundEndInfoBox(true)")
 end
 
 function kPMClient:OnCleanup(p_EntityType)
     if p_EntityType == nil then
         return
     end
-
-    print('Cleaning up: ' ..p_EntityType)
-
     local l_Entities = {}
 
     local l_Iterator = EntityManager:GetIterator(p_EntityType)
@@ -550,7 +562,6 @@ function kPMClient:OnCleanup(p_EntityType)
 
     for _, l_Entity in pairs(l_Entities) do
         if l_Entity ~= nil then
-            print('Destroying: ' ..p_EntityType)
             l_Entity:Destroy()
         end
     end

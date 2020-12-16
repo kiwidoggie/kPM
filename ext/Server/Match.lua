@@ -245,6 +245,7 @@ function Match:OnKnifeRound(p_DeltaTime)
 
         if s_Winner ~= TeamId.TeamNeutral then
             self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
+            self.m_Server:SetRoundEndInfoBox(s_Winner)
             return
         end
 
@@ -349,6 +350,8 @@ function Match:OnFirstHalf(p_DeltaTime)
             -- Update the round count
             self.m_CurrentRound = self.m_CurrentRound + 1
 
+            self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+
             -- Set this round to be over
             self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
             return
@@ -369,6 +372,8 @@ function Match:OnFirstHalf(p_DeltaTime)
             -- Update the round count
             self.m_CurrentRound = self.m_CurrentRound + 1
 
+            self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+
             -- Set this round to be over
             self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
             return
@@ -380,9 +385,13 @@ function Match:OnFirstHalf(p_DeltaTime)
             if s_DefenderAliveCount > 0 then
                 self.m_Defenders:RoundWon(self.m_CurrentRound)
                 self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
             else
                 self.m_Attackers:RoundWon(self.m_CurrentRound)
                 self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
             end
 
             -- Update the round count
