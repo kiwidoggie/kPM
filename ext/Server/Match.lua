@@ -5,13 +5,14 @@ require ("__shared/kPMConfig")
 require ("LoadoutManager")
 require ("LoadoutDefinitions")
 require ("__shared/LevelNameHelper")
+require ("__shared/Util/TableHelper")
 
-function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager)
+function Match:__init(p_Server, p_TeamAttackers, p_TeamDefenders, p_RoundCount, p_LoadoutManager)
     -- Save server reference
     self.m_Server = p_Server
 
-    self.m_Attackers = p_Team1
-    self.m_Defenders = p_Team2
+    self.m_Attackers = p_TeamAttackers
+    self.m_Defenders = p_TeamDefenders
 
     -- Number of rounds to play in total (divide by 2 for rounds per half)
     self.m_RoundCount = p_RoundCount
@@ -33,6 +34,15 @@ function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager
     self.m_UpdateStates[GameStates.WarmupToKnife] = self.OnWarmupToKnife
     self.m_UpdateStates[GameStates.KnifeRound] = self.OnKnifeRound
     self.m_UpdateStates[GameStates.KnifeToFirst] = self.OnKnifeToFirst
+    self.m_UpdateStates[GameStates.FirstHalf] = self.OnFirstHalf
+    self.m_UpdateStates[GameStates.FirstToHalf] = self.OnFirstToHalf
+    self.m_UpdateStates[GameStates.HalfTime] = self.OnHalfTime
+    self.m_UpdateStates[GameStates.HalfToSecond] = self.OnHalfToSecond
+    self.m_UpdateStates[GameStates.SecondHalf] = self.OnSecondHalf
+    self.m_UpdateStates[GameStates.Timeout] = self.OnTimeout -- TODO: FIXME
+    self.m_UpdateStates[GameStates.Strat] = self.OnStrat
+    --self.m_UpdateStates[GameStates.NadeTraining] = self.OnNadeTraining -- TODO: FIXME
+    self.m_UpdateStates[GameStates.EndGame] = self.OnEndGame
 
     -- State ticks
     self.m_UpdateTicks = { }
@@ -53,7 +63,30 @@ function Match:__init(p_Server, p_Team1, p_Team2, p_RoundCount, p_LoadoutManager
 
     self.m_LoadoutManager = p_LoadoutManager
 
+    self.m_KillQueue = { }
+    self.m_SpawnQueue = { }
+    self.m_UpdateManagerUpdateEvent = Events:Subscribe("UpdateManager:Update", self, self.OnUpdateManagerUpdate)
+
+    self.m_RestartQueue = false
+
     print("init: " .. self.m_UpdateTicks[GameStates.EndGame])
+end
+
+function Match:OnUpdateManagerUpdate(p_DeltaTime, p_UpdatePass)
+    if p_UpdatePass == UpdatePass.UpdatePass_PreSim then
+        if not TableHelper:empty(self.m_KillQueue) then
+            self:KillQueuedPlayers()
+        end
+        
+        if not TableHelper:empty(self.m_SpawnQueue) then
+            self:SpawnQueuedPlayers()
+        end
+
+        if self.m_RestartQueue then
+            -- TODO: Dont show the endscreen, just restart the map or something like that!
+            RCON:SendCommand('mapList.endround', {"1"})
+        end
+    end
 end
 
 -- ==========
@@ -79,6 +112,10 @@ function Match:OnEngineUpdate(p_GameState, p_DeltaTime)
 end
 
 function Match:OnWarmup(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.Warmup] == 0.0 then
+        self.m_Server:SetClientTimer(0)
+    end
+
     -- Check to see if the current time is greater or equal than our max
     if self.m_UpdateTicks[GameStates.Warmup] >= kPMConfig.MaxRupTick then
         self.m_UpdateTicks[GameStates.Warmup] = 0.0
@@ -109,26 +146,22 @@ function Match:OnWarmup(p_DeltaTime)
 end
 
 function Match:OnWarmupToKnife(p_DeltaTime)
-    -- TODO: Disable knife canned animations
+    if self.m_UpdateTicks[GameStates.WarmupToKnife] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxTransititionTime)
 
-    -- Kill all players disabling their ability to spawn
-    self:KillAllPlayers(false)
+        -- Kill all players disabling their ability to spawn
+        self:KillAllPlayers(false)
+    end
+
+    -- TODO: Disable knife canned animations
 
     -- If we have reached the maximum time here
     if self.m_UpdateTicks[GameStates.WarmupToKnife] >= kPMConfig.MaxTransititionTime then
         self.m_UpdateTicks[GameStates.WarmupToKnife] = 0.0
 
-        if kPMConfig.DebugMode then
-            print("WarmupToKnife completed, switching to knife round")
-        end
-
-        self:SpawnAllPlayers(true)
-
         -- Tried this to remove the animated melee attack, not really working
         -- self:FireEventForSpecificEntity("ServerMeleeEntity", "DisableMeleeTarget")
 
-        -- TODO: Force all players to respawn with a knife only kit
-        -- TODO: Transitition to the next game state
         self.m_Server:ChangeGameState(GameStates.KnifeRound)
     end
 
@@ -186,56 +219,72 @@ function Match:GetPlayerCounts()
 end
 
 function Match:OnKnifeRound(p_DeltaTime)
-    if self.m_Attackers == nil then
-        print("could not find attackers")
-        return
+    if self.m_UpdateTicks[GameStates.KnifeRound] == 0.0 then
+        self:SpawnAllPlayers(true)
+        self.m_Server:SetClientTimer(kPMConfig.MaxKnifeRoundTime)
     end
 
-    if self.m_Defenders == nil then
-        print("could not find defenders")
-        return
-    end
-
-    local s_AttackerId = self.m_Attackers:GetTeamId()
-    local s_DefenderId = self.m_Defenders:GetTeamId()
-
-    local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
-
-    -- Check the round state
-    local s_Winner = TeamId.TeamNeutral
-    if s_AttackerTotalCount > 0 and s_AttackerAliveCount == 0 then
-        -- If all attackers have been eliminated
-        s_Winner = s_DefenderId
-    elseif s_DefenderTotalCount > 0 and s_DefenderAliveCount == 0 then
-        -- All defenders have been eliminated
-        s_Winner = s_AttackerId
-    end
-
-    -- Check to see if we have triggered a round end
-    if self.m_UpdateTicks[GameStates.KnifeRound] > kPMConfig.MaxKnifeRoundTime then
-        self.m_UpdateTicks[GameStates.KnifeRound] = 0.0
-
-        -- Trigger
-        if s_Winner == TeamId.TeamNeutral then
-            print("no team won? this is probably an error")
+    if TableHelper:empty(self.m_SpawnQueue) then
+        if self.m_Attackers == nil then
+            print("could not find attackers")
             return
         end
 
-        -- Change the game state to the first half
-        self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
-        return
+        if self.m_Defenders == nil then
+            print("could not find defenders")
+            return
+        end
+
+        local s_AttackerId = self.m_Attackers:GetTeamId()
+        local s_DefenderId = self.m_Defenders:GetTeamId()
+
+        local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
+
+        -- Check the round state
+        local s_Winner = TeamId.TeamNeutral
+        if s_AttackerTotalCount > 0 and s_AttackerAliveCount == 0 then
+            -- If all attackers have been eliminated
+            s_Winner = s_DefenderId
+        elseif s_DefenderTotalCount > 0 and s_DefenderAliveCount == 0 then
+            -- All defenders have been eliminated
+            s_Winner = s_AttackerId
+        end
+
+        if s_Winner ~= TeamId.TeamNeutral then
+            self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
+            self.m_Server:SetRoundEndInfoBox(s_Winner)
+            return
+        end
+
+        -- Check to see if we have triggered a round end
+        if self.m_UpdateTicks[GameStates.KnifeRound] >= kPMConfig.MaxKnifeRoundTime then
+            self.m_UpdateTicks[GameStates.KnifeRound] = 0.0
+
+            -- Trigger
+            if s_Winner == TeamId.TeamNeutral then
+                print("no team won? this is probably an error")
+                return
+            end
+
+            -- Change the game state to the first half
+            self.m_Server:ChangeGameState(GameStates.KnifeToFirst)
+            return
+        end
     end
+
+    self.m_UpdateTicks[GameStates.KnifeRound] = self.m_UpdateTicks[GameStates.KnifeRound] + p_DeltaTime
 end
 
 function Match:OnKnifeToFirst(p_DeltaTime)
-    -- Kill all players before the first round
-    self:KillAllPlayers(false)
+    if self.m_UpdateTicks[GameStates.KnifeToFirst] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxTransititionTime)
+
+        -- Kill all players before the first round
+        self:KillAllPlayers(false)
+    end
 
     if self.m_UpdateTicks[GameStates.KnifeToFirst] > kPMConfig.MaxTransititionTime then
         self.m_UpdateTicks[GameStates.KnifeToFirst] = 0.0
-
-        -- Spawn all players with their respective loadouts
-        self:SpawnAllPlayers(false)
 
         -- Tried this to remove the animated melee attack
         -- self:FireEventForSpecificEntity("ServerMeleeEntity", "EnableMeleeTarget")
@@ -257,6 +306,8 @@ function Match:SwitchTeams()
     self.m_Attackers = s_OldDefenders
     self.m_Defenders = s_OldAttackers
 
+    NetEvents:Broadcast("kPM:UpdateTeams", self.m_Attackers:GetTeamId(), self.m_Defenders:GetTeamId())
+
     print("switched teams")
 end
 
@@ -271,6 +322,8 @@ function Match:OnFirstHalf(p_DeltaTime)
         -- Respawn all players
         self:SpawnAllPlayers(false)
         
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+
         -- Manually update the ticks
         self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
 
@@ -278,79 +331,278 @@ function Match:OnFirstHalf(p_DeltaTime)
         self.m_Server:ChangeGameState(GameStates.Strat)
     end
 
-    -- Get the player counts
-    local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
-
-    -- The round is running as expected, check the ending conditions
-
-    -- Which are if all attackers are dead
-    if s_AttackerAliveCount == 0 then
-        print("all attackers are dead, round is over")
-
-        -- Give a round to the defenders
-        self.m_Defenders:RoundWon(self.m_CurrentRound)
-
-        -- Give a loss to the attackers
-        self.m_Attackers:RoundLoss(self.m_CurrentRound)
-
-        -- Update the round count
-        self.m_CurrentRound = self.m_CurrentRound + 1
-
-        -- Set this round to be over
-        self.m_UpdateTicks[GameStates.FirstHalf] = kPMConfig.MaxRoundTime + 1.0
-        return
-    end
-    
-    -- TODO: If the objectives have been completed
-
-    -- If all defenders are dead
-    if s_DefenderAliveCount == 0 then
-        print("all defenders are dead, round is over")
-
-        -- Give a loss to the defenders
-        self.m_Defenders:RoundLoss(self.m_CurrentRound)
-
-        -- Give a win to the attackers
-        self.m_Attackers:RoundWon(self.m_CurrentRound)
-        return
+    -- TODO: FIXME
+    -- When start ends we need to update the UI's timer. Its kinda hacky now, needs a better solution
+    if self.m_UpdateTicks[GameStates.FirstHalf] >= 0.5 and self.m_UpdateTicks[GameStates.FirstHalf] <= 2.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxRoundTime)
     end
 
+    if TableHelper:empty(self.m_SpawnQueue) then
+        -- Get the player counts
+        local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
 
+        -- The round is running as expected, check the ending conditions
 
-    -- If the round is over
-    if self.m_UpdateTicks[GameStates.FirstHalf] >= kPMConfig.MaxRoundTime then
-        self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
+        -- Which are if all attackers are dead
+        if s_AttackerAliveCount == 0 then
+            print("all attackers are dead, round is over")
 
-        -- If the defenders have any players alive, they win, simple
-        if s_DefenderAliveCount > 0 then
+            -- Give a round to the defenders
             self.m_Defenders:RoundWon(self.m_CurrentRound)
+
+            -- Give a loss to the attackers
             self.m_Attackers:RoundLoss(self.m_CurrentRound)
-        else
-            self.m_Attackers:RoundWon(self.m_CurrentRound)
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+
+            self:IsRoundHalfTime()
+
+            -- Set this round to be over
+            self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
+            return
+        end
+        
+        -- TODO: If the objectives have been completed
+
+        -- If all defenders are dead
+        if s_DefenderAliveCount == 0 then
+            print("all defenders are dead, round is over")
+
+            -- Give a loss to the defenders
             self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+            -- Give a win to the attackers
+            self.m_Attackers:RoundWon(self.m_CurrentRound)
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+
+            self:IsRoundHalfTime()
+
+            -- Set this round to be over
+            self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
+            return
         end
 
-        -- Leave the timer at 0.0 in the same state, it will catch at the top
-        -- of this function and enable strat mode
-        return
+        -- If the round is over
+        if self.m_UpdateTicks[GameStates.FirstHalf] >= kPMConfig.MaxRoundTime then
+            -- If the defenders have any players alive, they win, simple
+            if s_DefenderAliveCount > 0 then
+                self.m_Defenders:RoundWon(self.m_CurrentRound)
+                self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+            else
+                self.m_Attackers:RoundWon(self.m_CurrentRound)
+                self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+            end
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self:IsRoundHalfTime()
+
+            -- Leave the timer at 0.0 in the same state, it will catch at the top
+            -- of this function and enable strat mode
+            self.m_UpdateTicks[GameStates.FirstHalf] = 0.0
+            return
+        end
     end
 
     -- Update the tick
     self.m_UpdateTicks[GameStates.FirstHalf] = self.m_UpdateTicks[GameStates.FirstHalf] + p_DeltaTime
 end
 
+function Match:IsRoundHalfTime()
+    if self.m_CurrentRound >= (self.m_RoundCount / 2) then
+        self.m_Server:ChangeGameState(GameStates.FirstToHalf)
+    end
+end
+
+function Match:OnFirstToHalf(p_DeltaTime)
+    self:KillAllPlayers(false)
+    self.m_Server:ChangeGameState(GameStates.HalfTime)
+end
+
 function Match:OnHalfTime(p_DeltaTime)
+    self:SwitchTeams()
+    self.m_Server:ChangeGameState(GameStates.HalfToSecond)
+end
+
+function Match:OnHalfToSecond(p_DeltaTime)
+    self.m_Server:ChangeGameState(GameStates.SecondHalf)
 end
 
 function Match:OnSecondHalf(p_DeltaTime)
+    -- Handle the case of when a round first starts, otherwise it will run "normal" code
+    if self.m_UpdateTicks[GameStates.SecondHalf] == 0.0 then
+        -- Switch to strat time for 5 seconds
+
+        -- Kill all players
+        self:KillAllPlayers(false)
+
+        -- Respawn all players
+        self:SpawnAllPlayers(false)
+        
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+
+        -- Manually update the ticks
+        self.m_UpdateTicks[GameStates.SecondHalf] = self.m_UpdateTicks[GameStates.SecondHalf] + p_DeltaTime
+
+        -- Switch to strat time, do not touch the SecondHalf timer, this ensures that we pick up "normal" round
+        self.m_Server:ChangeGameState(GameStates.Strat)
+    end
+
+    -- TODO: FIXME
+    -- When start ends we need to update the UI's timer. Its kinda hacky now, needs a better solution
+    if self.m_UpdateTicks[GameStates.SecondHalf] >= 0.5 and self.m_UpdateTicks[GameStates.SecondHalf] <= 2.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxRoundTime)
+    end
+
+    if TableHelper:empty(self.m_SpawnQueue) then
+        -- Get the player counts
+        local s_AttackerAliveCount, s_AttackerDeadCount, s_AttackerTotalCount, s_DefenderAliveCount, s_DefenderDeadCount, s_DefenderTotalCount = self:GetPlayerCounts()
+
+        -- The round is running as expected, check the ending conditions
+
+        -- Which are if all attackers are dead
+        if s_AttackerAliveCount == 0 then
+            print("all attackers are dead, round is over")
+
+            -- Give a round to the defenders
+            self.m_Defenders:RoundWon(self.m_CurrentRound)
+
+            -- Give a loss to the attackers
+            self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+
+            self:IsAnyTeamWon()
+
+            -- Set this round to be over
+            self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+            return
+        end
+        
+        -- TODO: If the objectives have been completed
+
+        -- If all defenders are dead
+        if s_DefenderAliveCount == 0 then
+            print("all defenders are dead, round is over")
+
+            -- Give a loss to the defenders
+            self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+            -- Give a win to the attackers
+            self.m_Attackers:RoundWon(self.m_CurrentRound)
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+
+            self:IsAnyTeamWon()
+
+            -- Set this round to be over
+            self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+            return
+        end
+
+        -- If the round is over
+        if self.m_UpdateTicks[GameStates.SecondHalf] >= kPMConfig.MaxRoundTime then
+            -- If the defenders have any players alive, they win, simple
+            if s_DefenderAliveCount > 0 then
+                self.m_Defenders:RoundWon(self.m_CurrentRound)
+                self.m_Attackers:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Defenders:GetTeamId())
+            else
+                self.m_Attackers:RoundWon(self.m_CurrentRound)
+                self.m_Defenders:RoundLoss(self.m_CurrentRound)
+
+                self.m_Server:SetRoundEndInfoBox(self.m_Attackers:GetTeamId())
+            end
+
+            -- Update the round count
+            self.m_CurrentRound = self.m_CurrentRound + 1
+
+            self:IsAnyTeamWon()
+
+            -- Leave the timer at 0.0 in the same state, it will catch at the top
+            -- of this function and enable strat mode
+            self.m_UpdateTicks[GameStates.SecondHalf] = 0.0
+            return
+        end
+    end
+
+    -- Update the tick
+    self.m_UpdateTicks[GameStates.SecondHalf] = self.m_UpdateTicks[GameStates.SecondHalf] + p_DeltaTime
+end
+
+function Match:IsAnyTeamWon()
+    if self.m_Attackers:CountRoundWon() >= (self.m_RoundCount / 2 + 1) or 
+        self.m_Defenders:CountRoundWon() >= (self.m_RoundCount / 2 + 1) then
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+        self.m_Server:ChangeGameState(GameStates.EndGame)
+        return
+    end
+
+    if self.m_CurrentRound >= self.m_RoundCount then
+        NetEvents:Broadcast("kPM:UpdateHeader", self.m_Attackers:CountRoundWon(), self.m_Defenders:CountRoundWon(), self.m_CurrentRound)
+        self.m_Server:ChangeGameState(GameStates.EndGame)
+        return
+    end
+end
+
+function Match:OnEndGame(p_DeltaTime)
+    if self.m_UpdateTicks[GameStates.EndGame] == 0.0 then
+        if self.m_Attackers:CountRoundWon() == self.m_Defenders:CountRoundWon() then
+            print('Game end: Draw')
+            self.m_Server:SetGameEnd(nil)
+        else
+            if self.m_Attackers:CountRoundWon() > self.m_Defenders:CountRoundWon() then
+                print('Game end: Attackers win')
+                self.m_Server:SetGameEnd(self.m_Attackers:GetTeamId())
+            else
+                print('Game end: Defenders win')
+                self.m_Server:SetGameEnd(self.m_Defenders:GetTeamId())
+            end
+        end
+
+        self.m_Server:SetClientTimer(kPMConfig.MaxEndgameTime)
+    end
+
+    if self.m_UpdateTicks[GameStates.EndGame] >= kPMConfig.MaxEndgameTime then
+        -- Set the restart queue so we can trigger an rcon restart or something like that
+        self.m_RestartQueue = true
+    end
+
+    self.m_UpdateTicks[GameStates.EndGame] = self.m_UpdateTicks[GameStates.EndGame] + p_DeltaTime
 end
 
 function Match:OnTimeout(p_DeltaTime)
 end
 
 function Match:OnStrat(p_DeltaTime)
-    if self.m_UpdateTicks[GameStates.Strat] > kPMConfig.MaxStratTime then
+    if self.m_UpdateTicks[GameStates.Strat] == 0.0 then
+        self.m_Server:SetClientTimer(kPMConfig.MaxStratTime)
+    end
+
+    if self.m_UpdateTicks[GameStates.Strat] >= kPMConfig.MaxStratTime then
         self.m_UpdateTicks[GameStates.Strat] = 0.0
+
+        -- One more cleanup, they can respawn and change / drop kits... dont leave those kits on the floor
+        self:Cleanup();
 
         -- Check the previous state
         local s_LastState = self.m_LastState
@@ -359,15 +611,44 @@ function Match:OnStrat(p_DeltaTime)
             return
         end
 
+        self:EnablePlayerInputs()
         self.m_Server:ChangeGameState(s_LastState)
         return
+    else
+        -- Maybe overkill to set it every tick, but remember, players can respawn or rejoin when Start
+        self:DisablePlayerInputs()
     end
 
     -- Update the strat tick counter
     self.m_UpdateTicks[GameStates.Strat] = self.m_UpdateTicks[GameStates.Strat] + p_DeltaTime
 end
 
-function Match:OnEndGame(p_DeltaTime)
+function Match:DisablePlayerInputs()
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        l_Player:EnableInput(EntryInputActionEnum.EIAFire, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAJump, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrowGrenade, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrottle, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAStrafe, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAMeleeAttack, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAChangePose, false)
+        l_Player:EnableInput(EntryInputActionEnum.EIAProne, false)
+    end
+end
+
+function Match:EnablePlayerInputs()
+    local s_Players = PlayerManager:GetPlayers()
+    for l_Index, l_Player in ipairs(s_Players) do
+        l_Player:EnableInput(EntryInputActionEnum.EIAFire, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAJump, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrowGrenade, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAThrottle, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAStrafe, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAMeleeAttack, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAChangePose, true)
+        l_Player:EnableInput(EntryInputActionEnum.EIAProne, true)
+    end
 end
 
 function Match:ClearReadyUpState()
@@ -388,6 +669,7 @@ function Match:OnPlayerRup(p_Player)
     if self.m_ReadyUpPlayers[s_PlayerId] == nil then
         self.m_ReadyUpPlayers[s_PlayerId] = true
         print("info: player " .. p_Player.name .. " ready up!")
+        NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
         return
     end
 
@@ -395,6 +677,7 @@ function Match:OnPlayerRup(p_Player)
     if self.m_ReadyUpPlayers[s_PlayerId] == false then
         self.m_ReadyUpPlayers[s_PlayerId] = true
         print("info: player " .. p_Player.name .. " ready up!")
+        NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
         return
     end
 
@@ -402,7 +685,14 @@ function Match:OnPlayerRup(p_Player)
     if self.m_ReadyUpPlayers[s_PlayerId] == true then
         self.m_ReadyUpPlayers[s_PlayerId] = false
         print("info: player " .. p_Player.name .. " unready up :(")
+        NetEvents:Broadcast('Player:ReadyUpPlayers', self.m_ReadyUpPlayers)
         return
+    end
+end
+
+function Match:ForceAllPlayerRup()
+    for index, l_Player in pairs(PlayerManager:GetPlayers()) do
+		self.m_ReadyUpPlayers[l_Player.id] = true
     end
 end
 
@@ -497,30 +787,45 @@ function Match:KillPlayer(p_Player, p_IsAllowedToSpawn)
         return
     end
 
-     -- Disable players ability to spawn
-     p_Player.isAllowedToSpawn = p_IsAllowedToSpawn
+    -- Disable players ability to spawn
+    p_Player.isAllowedToSpawn = p_IsAllowedToSpawn
 
-     -- If the player is not alive skip on
-     if not p_Player.alive then
-         return
-     end
+    -- If the player is not alive skip on
+    if not p_Player.alive then
+        return
+    end
 
-     -- Get out soldier
-     local l_Soldier = p_Player.soldier
-     local l_Corpse = p_Player.corpse
-     local l_Name = p_Player.name
+    if TableHelper:contains(self.m_KillQueue, p_Player.name) then
+        -- Player is already in the kill queue
+        return
+    end
 
-     -- Validate our soldier
-     if l_Soldier ~= nil then
-         print("killing soldier " .. l_Name)
-         l_Soldier:Kill()
-     end
+    self:AddPlayerToKillQueue(p_Player.name)
+end
 
-     -- If the player is a corpse force dead
-     if l_Corpse ~= nil then
-         print("killing corpse " .. l_Name)
-         l_Corpse:ForceDead()
-     end
+function Match:KillQueuedPlayers()
+    for l_Index, l_PlayerName in ipairs(self.m_KillQueue) do
+        print('KillQueuedPlayer: ' .. l_PlayerName)
+        RCON:SendCommand('admin.killPlayer', {l_PlayerName})
+        table.remove(self.m_KillQueue, l_Index)
+    end
+end
+
+function Match:SpawnQueuedPlayers()
+    for l_Index, l_Spawn in ipairs(self.m_SpawnQueue) do
+        if not TableHelper:contains(self.m_KillQueue, l_Spawn["p_Player"].name) then
+            print('SpawnQueuedPlayer: ' .. l_Spawn["p_Player"].name)
+            self:SpawnPlayer(
+                l_Spawn["p_Player"],
+                l_Spawn["p_Transform"],
+                l_Spawn["p_Pose"],
+                l_Spawn["p_SoldierBp"],
+                l_Spawn["p_KnifeOnly"],
+                l_Spawn["p_SelectedKit"]
+            )
+            table.remove(self.m_SpawnQueue, l_Index)
+        end
+    end
 end
 
 function Match:SpawnAllPlayers(p_KnifeOnly)
@@ -530,7 +835,7 @@ function Match:SpawnAllPlayers(p_KnifeOnly)
 
     self:Cleanup();
 
-    local l_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
+    local s_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
 
     local s_Players = PlayerManager:GetPlayers()
     for l_Index, l_Player in ipairs(s_Players) do
@@ -539,17 +844,42 @@ function Match:SpawnAllPlayers(p_KnifeOnly)
             goto _knife_continue_
         end
 
-        self:SpawnPlayer(
+        --[[self:SpawnPlayer(
             l_Player, 
             self:GetRandomSpawnpoint(l_Player), 
             CharacterPoseType.CharacterPoseType_Stand, 
-            l_SoldierBlueprint, 
+            s_SoldierBlueprint, 
+            p_KnifeOnly,
+            self.m_LoadoutManager:GetPlayerLoadout(l_Player)
+        )]]
+        self:AddPlayerToSpawnQueue(
+            l_Player, 
+            self:GetRandomSpawnpoint(l_Player), 
+            CharacterPoseType.CharacterPoseType_Stand, 
+            s_SoldierBlueprint, 
             p_KnifeOnly,
             self.m_LoadoutManager:GetPlayerLoadout(l_Player)
         )
 
         ::_knife_continue_::
     end
+end
+
+function Match:AddPlayerToSpawnQueue(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOnly, p_SelectedKit)
+    print('AddPlayerToSpawnQueue: ' .. p_Player.name)
+    table.insert(self.m_SpawnQueue, {
+        ["p_Player"] = p_Player,
+        ["p_Transform"] = p_Transform,
+        ["p_Pose"] = p_Pose,
+        ["p_SoldierBp"] = p_SoldierBp,
+        ["p_KnifeOnly"] = p_KnifeOnly,
+        ["p_SelectedKit"] = p_SelectedKit,
+    })
+end
+
+function Match:AddPlayerToKillQueue(p_PlayerName)
+    print('AddPlayerToKillQueue: ' .. p_PlayerName)
+    table.insert(self.m_KillQueue, p_PlayerName)
 end
 
 function Match:SpawnPlayer(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOnly, p_SelectedKit)
@@ -561,17 +891,13 @@ function Match:SpawnPlayer(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOn
         return
     end
 
-    if p_Player.soldier ~= nil then
-		p_Player.soldier:Kill()
-    end
-
     if p_SelectedKit == nil then
         return
     end
 
     local l_SoldierAsset = nil
     local l_Appearance = nil
-    if p_Player.teamId == TeamId.Team1 then
+    if p_Player.teamId == self.m_Defenders:GetTeamId() then
         -- US
         l_SoldierAsset = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["DEFENDER"]["KIT"])
         l_Appearance = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["DEFENDER"]["APPEARANCE"])
@@ -580,6 +906,7 @@ function Match:SpawnPlayer(p_Player, p_Transform, p_Pose, p_SoldierBp, p_KnifeOn
         l_SoldierAsset = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["ATTACKER"]["KIT"])
         l_Appearance = ResourceManager:SearchForDataContainer(Kits[p_SelectedKit["Class"]]["ATTACKER"]["APPEARANCE"])
     end
+
     if l_SoldierAsset == nil or l_Appearance == nil then
         return
     end
@@ -639,7 +966,8 @@ function Match:GetRandomSpawnpoint(p_Player)
     -- TODO: Don't spawn on an already taken spawnpoint
     
     local l_SpawnTrans = nil;
-    if p_Player.teamId == TeamId.Team1 then
+
+    if p_Player.teamId == self.m_Defenders:GetTeamId() then
         l_SpawnTrans = MapsConfig[l_LevelName]["DEF_SPAWNS"][ math.random( #MapsConfig[l_LevelName]["DEF_SPAWNS"] ) ]
     else
         l_SpawnTrans = MapsConfig[l_LevelName]["ATK_SPAWNS"][  math.random( #MapsConfig[l_LevelName]["ATK_SPAWNS"] ) ]
@@ -678,8 +1006,6 @@ function Match:CleanupSpecificEntity(p_EntityType)
         return
     end
 
-    print('Cleaning up: ' ..p_EntityType)
-
     local l_Entities = {}
 
     local l_Iterator = EntityManager:GetIterator(p_EntityType)
@@ -691,7 +1017,6 @@ function Match:CleanupSpecificEntity(p_EntityType)
 
     for _, l_Entity in pairs(l_Entities) do
         if l_Entity ~= nil then
-            print('Destroying: ' ..p_EntityType)
             l_Entity:Destroy()
         end
     end

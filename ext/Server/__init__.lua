@@ -20,8 +20,8 @@ function kPMServer:__init()
     self.m_GameState = GameStates.None
 
     -- Create our team information
-    self.m_Attackers = Team(TeamId.Team1, "Attackers", "nK")
-    self.m_Defenders = Team(TeamId.Team2, "Defenders", "mTw")
+    self.m_Attackers = Team(TeamId.Team2, "Attackers", "") -- RUS
+    self.m_Defenders = Team(TeamId.Team1, "Defenders", "") -- US
 
     -- Loadout manager
     self.m_LoadoutManager = LoadoutManager()
@@ -69,6 +69,8 @@ function kPMServer:RegisterEvents()
 
     -- Events from the client
     self.m_ToggleRupEvent = NetEvents:Subscribe("kPM:ToggleRup", self, self.OnToggleRup)
+    -- TODO: This is a debug only function
+    self.m_ForceToggleRupEvent = NetEvents:Subscribe("kPM:ForceToggleRup", self, self.OnForceToggleRup)
     self.m_PlayerConnectedEvent = NetEvents:Subscribe("kPM:PlayerConnected", self, self.OnPlayerConnected)
     self.m_PlayerSetSelectedTeamEvent = NetEvents:Subscribe("kPM:PlayerSetSelectedTeam", self, self.OnPlayerSetSelectedTeam)
     self.m_PlayerSetSelectedKitEvent = NetEvents:Subscribe("kPM:PlayerSetSelectedKit", self, self.OnPlayerSetSelectedKit)
@@ -250,7 +252,7 @@ function kPMServer:OnPlayerSetSelectedKit(p_Player, p_Data)
     
     self.m_LoadoutManager:SetPlayerLoadout(p_Player, l_Data)
 
-    if self.m_GameState == GameStates.Warmup or self.m_GameState == GameStates.None then
+    if self.m_GameState == GameStates.Warmup or self.m_GameState == GameStates.None or self.m_GameState == GameStates.Strat then
         -- If the current gamestate is Warmup or None we can switch kit instantly
         local l_SoldierBlueprint = ResourceManager:SearchForDataContainer('Characters/Soldiers/MpSoldier')
 
@@ -258,7 +260,7 @@ function kPMServer:OnPlayerSetSelectedKit(p_Player, p_Data)
             self.m_Match:KillPlayer(p_Player, false)
         end
 
-        self.m_Match:SpawnPlayer(
+        self.m_Match:AddPlayerToSpawnQueue(
             p_Player, 
             self.m_Match:GetRandomSpawnpoint(p_Player), 
             CharacterPoseType.CharacterPoseType_Stand, 
@@ -330,6 +332,23 @@ function kPMServer:OnToggleRup(p_Player)
     self.m_Match:OnPlayerRup(p_Player)
 end
 
+-- TODO: This is a debug only function
+function kPMServer:OnForceToggleRup(p_Player)
+    if p_Player == nil then
+        print("err: invalid player.")
+        return
+    end
+
+    local s_PlayerName = p_Player.name
+    local s_PlayerId = p_Player.id
+
+    if self.m_GameState ~= GameStates.Warmup then
+        return
+    end
+
+    self.m_Match:ForceAllPlayerRup()
+end
+
 function kPMServer:OnPlayerChat(p_Player, p_RecipientMask, p_Message)
     -- Check the player
     if p_Player == nil then
@@ -372,11 +391,34 @@ function kPMServer:ChangeGameState(p_GameState)
     self.m_GameState = p_GameState
 
     -- Call UpdateAllowedGuids when Warmup ends
-    if p_GameState > 1 then
+    if p_GameState ~= GameStates.Warmup and s_OldGameState == GameStates.Warmup then
         self:UpdateAllowedGuids()
     end
 
     NetEvents:Broadcast("kPM:GameStateChanged", s_OldGameState, p_GameState)
+end
+
+function kPMServer:SetClientTimer(p_Time)
+    if p_Time == nil then
+        print("err: no time to send to the clients")
+        return
+    end
+
+    NetEvents:Broadcast("kPM:StartWebUITimer", p_Time)
+end
+
+function kPMServer:SetRoundEndInfoBox(p_WinnerTeamId)
+    if p_WinnerTeamId == nil then
+        print("err: no winner to send to the clients")
+        return
+    end
+
+    NetEvents:Broadcast("kPM:SetRoundEndInfoBox", p_WinnerTeamId)
+end
+
+function kPMServer:SetGameEnd(p_WinnerTeamId)
+    -- Watch out, this can be nil if the game is draw
+    NetEvents:Broadcast("kPM:SetGameEnd", p_WinnerTeamId)
 end
 
 return kPMServer()

@@ -1,4 +1,73 @@
 export let Weapons = {
+    U_M16A4: {
+        Key: "U_M16A4",
+        Name: "M16A4",
+        Image: "fb://UI/Art/Persistence/Weapons/m16a4",
+        Vext: "Weapons/M16A4/U_M16A4",
+        Attachments: {
+            Sights: {
+                None: {
+                    Key: "None",
+                    Name: "Iron Sights",
+                    Vext: "Weapons/Common/NoOptics",
+                },
+                U_M16A4_RX01: {
+                    Key: "U_M16A4_RX01",
+                    Name: "Reflex (RDS)",
+                    Vext: "Weapons/M16A4/U_M16A4_RX01",
+                },
+                U_M16A4_Kobra: {
+                    Key: "U_M16A4_Kobra",
+                    Name: "Kobra (RDS)",
+                    Vext: "Weapons/M16A4/U_M16A4_Kobra",
+                },
+                U_M16A4_ACOG: {
+                    Key: "U_M16A4_ACOG",
+                    Name: "ACOG (4x)",
+                    Vext: "Weapons/M16A4/U_M16A4_ACOG",
+                },
+            },
+            Primary: {
+                None: {
+                    Key: "None",
+                    Name: "No Primary",
+                    Vext: "",
+                },
+                U_M16A4_Foregrip: {
+                    Key: "U_M16A4_Foregrip",
+                    Name: "Foregrip",
+                    Vext: "Weapons/M16A4/U_M16A4_Foregrip",
+                },
+                U_M16A4_Bipod: {
+                    Key: "U_M16A4_Bipod",
+                    Name: "Bipod",
+                    Vext: "Weapons/M16A4/U_M16A4_Bipod",
+                },
+            },
+            Secondary: {
+                None: {
+                    Key: "None",
+                    Name: "No Secondary",
+                    Vext: "",
+                },
+                U_M16A4_HeavyBarrel: {
+                    Key: "U_M16A4_HeavyBarrel",
+                    Name: "Heavy Barrel",
+                    Vext: "Weapons/M16A4/U_M16A4_HeavyBarrel",
+                },
+                U_M16A4_Sound_Suppressor: {
+                    Key: "U_M16A4_Sound_Suppressor",
+                    Name: "Suppressor",
+                    Vext: "Weapons/M16A4/U_M16A4_Sound_Suppressor",
+                },
+                U_M16A4_FlashSuppressor: {
+                    Key: "U_M16A4_FlashSuppressor",
+                    Name: "Flash Supp.",
+                    Vext: "Weapons/M16A4/U_M16A4_FlashSuppressor",
+                },
+            },
+        },
+    },
     U_AK74M: {
         Key: "U_AK74M",
         Name: "AK-74M",
@@ -9,7 +78,7 @@ export let Weapons = {
                 None: {
                     Key: "None",
                     Name: "Iron Sights",
-                    Vext: "",
+                    Vext: "Weapons/Common/NoOptics",
                 },
                 U_AK74M_RX_01: {
                     Key: "U_AK74M_RX_01",
@@ -78,7 +147,7 @@ export let Weapons = {
                 None: {
                     Key: "None",
                     Name: "Iron Sights",
-                    Vext: "",
+                    Vext: "Weapons/Common/NoOptics",
                 },
                 U_G36C_RX_01: {
                     Key: "U_G36C_RX_01",
@@ -138,6 +207,7 @@ export let Weapons = {
         },
     },
 
+
     // SpecOps
     U_AKS74u: {
         Key: "U_AKS74u",
@@ -149,7 +219,7 @@ export let Weapons = {
                 None: {
                     Key: "None",
                     Name: "Iron Sights",
-                    Vext: "",
+                    Vext: "Weapons/Common/NoOptics",
                 },
                 U_AKS74u_RX_01: {
                     Key: "U_AKS74u_RX_01",
@@ -218,7 +288,7 @@ export let Weapons = {
                 None: {
                     Key: "None",
                     Name: "Iron Sights",
-                    Vext: "",
+                    Vext: "Weapons/Common/NoOptics",
                 },
                 U_F2000_RX01: {
                     Key: "U_F2000_RX01",
@@ -289,7 +359,7 @@ export let Weapons = {
                 None: {
                     Key: "None",
                     Name: "Iron Sights",
-                    Vext: "",
+                    Vext: "Weapons/Common/NoOptics",
                 },
                 U_SPAS12_RX01: {
                     Key: "U_SPAS12_RX01",
@@ -360,7 +430,7 @@ export let Weapons = {
                 None: {
                     Key: "None",
                     Name: "Iron Sights",
-                    Vext: "",
+                    Vext: "Weapons/Common/NoOptics",
                 },
                 U_M98B_Acog: {
                     Key: "U_M98B_Acog",
@@ -447,6 +517,24 @@ export let Weapons = {
         Name: "Ammobag",
         Image: "fb://UI/Art/Persistence/Weapons/Ammobag",
         Vext: "Weapons/Gadgets/Ammobag/U_Ammobag",
+    },
+    U_UGS: {
+        Key: "U_UGS",
+        Name: "T-UGS",
+        Image: "fb://UI/Art/Persistence/Weapons/t-ugs",
+        Vext: "Weapons/Gadgets/T-UGS/U_UGS",
+    },
+    U_Claymore: {
+        Key: "U_Claymore",
+        Name: "Claymore",
+        Image: "fb://UI/Art/Persistence/Weapons/claymore",
+        Vext: "Weapons/Gadgets/Claymore/U_Claymore",
+    },
+    U_MAV: {
+        Key: "U_MAV",
+        Name: "MAV",
+        Image: "fb://UI/Art/Persistence/Weapons/mav",
+        Vext: "Weapons/Gadgets/MAV/U_MAV",
     },
 
 

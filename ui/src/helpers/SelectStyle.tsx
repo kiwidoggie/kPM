@@ -9,7 +9,7 @@ export const selectStyle = {
         ...provided,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         borderRadius: 0,
-        width: "20vw",
+        width: "25vw",
         border: '0.1574074074074074vh solid rgba(255, 255, 255, 0.7)',
         '&:hover': {
             borderColor: 'rgba(255, 255, 255, 1)'

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { GameStates, GameStatesRoundString } from "./helpers/GameStates";
+import CountDown from "./components/CountDown";
 
 import './Header.scss';
 
@@ -9,15 +10,27 @@ interface Props {
     teamAttackersClan?: string;
     teamDefendersClan?: string;
     currentScene: GameStates;
-    round: string|null;
+    round: number|null;
     showHud: boolean;
 }
 
 const Header: React.FC<Props> = ({ teamAttackersClan, teamDefendersClan, teamAttackersScore, teamDefendersScore, currentScene, round, showHud }) => {
+    const [ time, setTime ] = useState<number>(0);
+
+    window.SetTimer = function(p_Time: number) {
+        setTime(p_Time - 1); //Hacky stuff, -1 sec is needed to show accurate time
+    }
+
     return (
         <>
             <div id="promodHeader">
                 Promod
+            </div>
+
+            <div id="debug">
+                <button onClick={() => setTime(300)}>300 sec</button>
+                <button onClick={() => setTime(200)}>200 sec</button>
+                <button onClick={() => setTime(100)}>100 sec</button>
             </div>
 
             {showHud &&
@@ -36,9 +49,18 @@ const Header: React.FC<Props> = ({ teamAttackersClan, teamDefendersClan, teamAtt
                             <span className="points">{teamAttackersScore??0}</span>
                         </div>
                         <div id="roundTimer">
-                            <span className="timer">00:00</span>
+                            <span className="timer">
+                                {(time > 0)
+                                ?
+                                    <CountDown time={time} />
+                                :
+                                    <>
+                                        00:00
+                                    </>
+                                }
+                            </span>
                             <span className="round">
-                                {GameStatesRoundString[currentScene].replace('{round}', (round??'0'))??''}
+                                {GameStatesRoundString[currentScene].replace('{round}', (round?.toString()??'1'))??''}
                             </span>
                         </div>
                         <div id="scoreDefenders">
@@ -64,8 +86,13 @@ Header.defaultProps = {
     currentScene: GameStates.None,
     teamAttackersScore: 0,
     teamDefendersScore: 0,
-    round: '0',
+    round: 0,
 };
 
-
 export default Header;
+
+declare global {
+    interface Window {
+        SetTimer: (p_Time: number) => void;
+    }
+}

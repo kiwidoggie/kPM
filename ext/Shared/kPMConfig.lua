@@ -10,7 +10,7 @@ kPMConfig =
     -- ==========
 
     -- Maximum Ready up time
-    MaxReadyUpTime = 0.5,
+    MaxReadyUpTime = 1.5,
 
     -- Maximum Plant time
     PlantTime = 5.0,
@@ -32,7 +32,7 @@ kPMConfig =
     -- ==========
     -- Server configuration options
     -- ==========
-    MatchDefaultRounds = 24,
+    MatchDefaultRounds = 12,
 
     -- Minimum of 2 players in order to start a match
     MinPlayerCount = 1,
@@ -47,8 +47,11 @@ kPMConfig =
     MaxKnifeRoundTime = 300.0,
 
     -- Maximum transitition time between gamestates (default: 2 seconds)
-    MaxTransititionTime = 2.0,
+    MaxTransititionTime = 5.0,
 
     -- Round time (default: 10 minutes)
-    MaxRoundTime = 600.0,
+    MaxRoundTime = 300.0,
+
+    -- Game end time (default: 20 sec)
+    MaxEndgameTime = 20.0,
 }

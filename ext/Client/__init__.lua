@@ -3,6 +3,7 @@ class "kPMClient"
 require("ClientCommands")
 require("Freecam")
 require("UICleanup")
+require("StratVision")
 require("__shared/GameStates")
 require("__shared/kPMConfig")
 require("__shared/MapsConfig")
@@ -39,8 +40,13 @@ function kPMClient:__init()
     -- The current gamestate, this is read-only and should only be changed by the SERVER
     self.m_GameState = GameStates.None
 
+    self.m_AttackersTeamId = TeamId.Team2
+    self.m_DefendersTeamId = TeamId.Team1
+
     -- Freecamera
     self.m_FreeCam = FreeCam()
+
+    self.m_StatVision = StratVision()
 end
 
 -- ==========
@@ -85,8 +91,11 @@ function kPMClient:RegisterEvents()
     self.m_RupStateEvent = NetEvents:Subscribe("kPM:RupStateChanged", self, self.OnRupStateChanged)
 
     -- Update ping table
-    self.m_PlayerPing = NetEvents:Subscribe('Player:Ping', self, self.OnPlayerPing)
+    self.m_PlayerPing = NetEvents:Subscribe("Player:Ping", self, self.OnPlayerPing)
     self.m_PingTable = {}
+
+    self.m_PlayerReadyUpPlayers = NetEvents:Subscribe("Player:ReadyUpPlayers", self, self.OnReadyUpPlayers)
+    self.m_PlayerReadyUpPlayersTable = {}
 
     self.m_UIPushScreen = Hooks:Install('UI:PushScreen', 1, self, self.OnUIPushScreen)
 
@@ -105,6 +114,13 @@ function kPMClient:RegisterEvents()
     -- WebUI
     self.m_SetSelectedTeamEvent = Events:Subscribe("WebUISetSelectedTeam", self, self.OnSetSelectedTeam)
     self.m_SetSelectedLoadoutEvent = Events:Subscribe("WebUISetSelectedLoadout", self, self.OnSetSelectedLoadout)
+    
+    self.m_StartWebUITimerEvent = NetEvents:Subscribe("kPM:StartWebUITimer", self, self.OnStartWebUITimer)
+    self.m_UpdateHeaderEvent = NetEvents:Subscribe("kPM:UpdateHeader", self, self.OnUpdateHeader)
+    self.m_SetRoundEndInfoBoxEvent = NetEvents:Subscribe("kPM:SetRoundEndInfoBox", self, self.OnSetRoundEndInfoBox)
+    self.m_SetGameEndEvent = NetEvents:Subscribe("kPM:SetGameEnd", self, self.OnSetGameEnd)
+
+    self.m_UpdateTeamsEvent = NetEvents:Subscribe("kPM:UpdateTeams", self, self.OnUpdateTeams)
 
     self.m_FirstSpawn = false
 
@@ -121,8 +137,11 @@ function kPMClient:OnSetSelectedTeam(p_Team)
         return
     end
 
-    print("client selected a team")
-    NetEvents:Send("kPM:PlayerSetSelectedTeam", p_Team)
+    if p_Team == 2 then
+        NetEvents:Send("kPM:PlayerSetSelectedTeam", self.m_AttackersTeamId)
+    else
+        NetEvents:Send("kPM:PlayerSetSelectedTeam", self.m_DefendersTeamId)
+    end
 end
 
 function kPMClient:OnSetSelectedLoadout(p_Data)
@@ -135,7 +154,6 @@ function kPMClient:OnSetSelectedLoadout(p_Data)
         self.m_FirstSpawn = true
     end
 
-    print("client selected a loadout")
     NetEvents:Send("kPM:PlayerSetSelectedKit", p_Data)
 end
 
@@ -148,6 +166,8 @@ function kPMClient:RegisterCommands()
     -- Register console commands for users to leverage
     self.m_PositionCommand = Console:Register("kpm_player_pos", "Displays the current player position", ClientCommands.PlayerPosition)
     self.m_ReadyUpCommand = Console:Register("kpm_ready_up", "Toggles the ready up state", ClientCommands.ReadyUp)
+    self.m_ForceReadyUpCommand = Console:Register("kpm_force_ready_up", "Toggles all players to ready up state", ClientCommands.ForceReadyUp)
+    
 end
 
 function kPMClient:UnregisterCommands()
@@ -163,7 +183,7 @@ end
 
 function kPMClient:OnLevelLoaded()
     NetEvents:Send("kPM:PlayerConnected")
-    WebUI:ExecuteJS("OpenCloseTeamMenu();")
+    WebUI:ExecuteJS("OpenCloseTeamMenu(true);")
 end
 
 function kPMClient:OnUpdateInput(p_DeltaTime)
@@ -301,6 +321,10 @@ function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
     local l_ScoreboardActive = self.m_ScoreboardActive
 
     local l_Player = PlayerManager:GetLocalPlayer()
+    
+    if l_Player == nil then
+        return
+    end
 
     -- If the player is holding the interact key then update our variables and clear it for the next frame
     if s_InteractLevel > 0.0 then
@@ -327,7 +351,9 @@ function kPMClient:IsTabHeld(p_Hook, p_Cache, p_DeltaTime)
             self:OnUpdateScoreboard(l_Player)
         end
 
-        WebUI:ExecuteJS("OpenCloseScoreboard()")
+        if l_Player.alive == true then
+            WebUI:ExecuteJS("OpenCloseScoreboard(" .. string.format('%s', l_ScoreboardActive) .. ");")
+        end
     end
 end
 
@@ -347,7 +373,8 @@ function kPMClient:OnRupStateChanged(p_WaitingOnPlayers, p_LocalRupStatus)
         return
     end
 
-    WebUI:ExecuteJS("UpdateRupStatus(" .. tostring(p_WaitingOnPlayers) .. ", " .. tostring(p_LocalRupStatus) .. ");")
+    local l_Player = PlayerManager:GetLocalPlayer()
+    self:OnUpdateScoreboard(l_Player)
 end
 
 function kPMClient:OnUIPushScreen(hook, screen, graphPriority, parentGraph)
@@ -362,6 +389,10 @@ end
 
 function kPMClient:OnPlayerPing(p_PingTable)
     self.m_PingTable = p_PingTable
+end
+
+function kPMClient:OnReadyUpPlayers(p_ReadyUpPlayers)
+    self.m_PlayerReadyUpPlayersTable = p_ReadyUpPlayers
 end
 
 function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
@@ -380,18 +411,39 @@ function kPMClient:OnGameStateChanged(p_OldGameState, p_GameState)
     print("info: gamestate " .. p_OldGameState .. " -> " .. p_GameState)
     self.m_GameState = p_GameState
 
+    if p_GameState == GameStates.Strat then
+        self.m_StatVision:SetStratVision()
+    else
+        self.m_StatVision:RemoveStratVision()
+    end
+
     -- Update the WebUI
     WebUI:ExecuteJS("ChangeState(" .. self.m_GameState .. ");")
 end
 
-function kPMClient:OnUpdateScoreboard(player)
+function kPMClient:OnUpdateHeader(p_AttackerPoints, p_DefenderPoints, p_Rounds)
+    WebUI:ExecuteJS("UpdateHeader(" .. p_AttackerPoints .. ", " .. p_DefenderPoints .. ", " .. (p_Rounds + 1) .. ");")
+end
+
+function kPMClient:OnUpdateTeams(p_AttackersTeamId, p_DefendersTeamId)
+    if self.m_AttackersTeamId ~= p_AttackersTeamId then
+        self.m_AttackersTeamId = p_AttackersTeamId
+    end
+
+    if self.m_DefendersTeamId ~= p_DefendersTeamId then
+        self.m_DefendersTeamId = p_DefendersTeamId
+    end
+end
+
+function kPMClient:OnUpdateScoreboard(p_Player)
+    if p_Player == nil then
+        return
+    end
+    
     print("OnUpdateScoreboard")
 
-    local l_DefendersId = TeamId.Team1
-    local l_AttackersId = TeamId.Team2
-
-    local l_PlayerListDefenders = PlayerManager:GetPlayersByTeam(l_DefendersId)
-    local l_PlayerListAttackers = PlayerManager:GetPlayersByTeam(l_AttackersId)
+    local l_PlayerListDefenders = PlayerManager:GetPlayersByTeam(self.m_DefendersTeamId)
+    local l_PlayerListAttackers = PlayerManager:GetPlayersByTeam(self.m_AttackersTeamId)
 
     table.sort(l_PlayerListDefenders, function(a, b) 
 		return a.score > b.score
@@ -401,53 +453,124 @@ function kPMClient:OnUpdateScoreboard(player)
 		return a.score > b.score
     end)
 
-    local playersObject = {}
-    playersObject[l_DefendersId] = {}
-    playersObject[l_AttackersId] = {}
+    local l_PlayersObject = {}
+    l_PlayersObject["defenders"] = {}
+    l_PlayersObject["attackers"] = {}
     
-    for index, player in pairs(l_PlayerListDefenders) do
-		local ping = "0"
-		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
-			ping = self.m_PingTable[player.id]
+    for index, l_Player in pairs(l_PlayerListDefenders) do
+		local l_Ping = "0"
+		if self.m_PingTable[l_Player.id] ~= nil and self.m_PingTable[l_Player.id] >= 0 and self.m_PingTable[l_Player.id] < 999 then
+			l_Ping = self.m_PingTable[l_Player.id]
+        end
+
+        local l_Ready = false
+        if self.m_PlayerReadyUpPlayersTable[l_Player.id] ~= nil then
+            l_Ready = self.m_PlayerReadyUpPlayersTable[l_Player.id]
         end
         
-		table.insert(playersObject[l_DefendersId], {
-            ["id"] = player.id, 
-            ["name"] = player.name, 
-            ["ping"] = ping,
-            ["kill"] = player.kills, 
-            ["death"] = player.deaths, 
-            ["isDead"] = not player.alive
+		table.insert(l_PlayersObject["defenders"], {
+            ["id"] = l_Player.id,
+            ["name"] = l_Player.name,
+            ["ping"] = l_Ping,
+            ["kill"] = l_Player.kills,
+            ["death"] = l_Player.deaths,
+            ["isDead"] = not l_Player.alive,
+            ["isReady"] = l_Ready,
+            ["team"] = l_Player.teamId,
         })
     end
 
-
-    for index, player in pairs(l_PlayerListAttackers) do
-		local ping = "0"
-		if self.m_PingTable[player.id] ~= nil and self.m_PingTable[player.id] >= 0 and self.m_PingTable[player.id] < 999 then
-			ping = self.m_PingTable[player.id]
+    for index, l_Player in pairs(l_PlayerListAttackers) do
+		local l_Ping = "0"
+		if self.m_PingTable[l_Player.id] ~= nil and self.m_PingTable[l_Player.id] >= 0 and self.m_PingTable[l_Player.id] < 999 then
+			l_Ping = self.m_PingTable[l_Player.id]
         end
-        
-		table.insert(playersObject[l_AttackersId], {
-            ["id"] = player.id, 
-            ["name"] = player.name, 
-            ["ping"] = ping,
-            ["kill"] = player.kills, 
-            ["death"] = player.deaths, 
-            ["isDead"] = not player.alive
+
+        local l_Ready = false
+        if self.m_PlayerReadyUpPlayersTable[l_Player.id] ~= nil then
+            l_Ready = self.m_PlayerReadyUpPlayersTable[l_Player.id]
+        end
+
+		table.insert(l_PlayersObject["attackers"], {
+            ["id"] = l_Player.id,
+            ["name"] = l_Player.name,
+            ["ping"] = l_Ping,
+            ["kill"] = l_Player.kills,
+            ["death"] = l_Player.deaths,
+            ["isDead"] = not l_Player.alive,
+            ["isReady"] = l_Ready,
+            ["team"] = l_Player.teamId,
         })
     end
+
+    local l_Ping = "0"
+    if self.m_PingTable[p_Player.id] ~= nil and self.m_PingTable[p_Player.id] >= 0 and self.m_PingTable[p_Player.id] < 999 then
+        l_Ping = self.m_PingTable[p_Player.id]
+    end
+
+    local l_Ready = false
+    if self.m_PlayerReadyUpPlayersTable[p_Player.id] ~= nil then
+        l_Ready = self.m_PlayerReadyUpPlayersTable[p_Player.id]
+    end
+
+    local l_PlayerClient = {
+        ["id"] = p_Player.id,
+        ["name"] = p_Player.name,
+        ["ping"] = l_Ping,
+        ["kill"] = p_Player.kills,
+        ["death"] = p_Player.deaths,
+        ["isDead"] = not p_Player.alive,
+        ["isReady"] = l_Ready,
+        ["team"] = p_Player.teamId,
+    }
+
+    WebUI:ExecuteJS(string.format("UpdatePlayers(%s, %s);", json.encode(l_PlayersObject), json.encode(l_PlayerClient)))
+end
+
+function kPMClient:OnStartWebUITimer(p_Time)
+    WebUI:ExecuteJS(string.format("SetTimer(%s);", p_Time))
+end
+
+function kPMClient:OnSetRoundEndInfoBox(p_WinnerTeamId)
+    local isPlayerWinner = false
+
+    local l_Player = PlayerManager:GetLocalPlayer()
+    if l_Player.teamId == p_WinnerTeamId then
+        isPlayerWinner = true
+    end
     
-    WebUI:ExecuteJS(string.format("UpdatePlayers(%s)", json.encode(playersObject)))
+    if p_WinnerTeamId == self.m_AttackersTeamId then
+        WebUI:ExecuteJS('UpdateRoundEndInfoBox('.. tostring(isPlayerWinner) .. ', "attackers");')
+    else
+        WebUI:ExecuteJS('UpdateRoundEndInfoBox('.. tostring(isPlayerWinner) .. ', "defenders");')
+    end
+    
+    WebUI:ExecuteJS("ShowHideRoundEndInfoBox(true)")
+end
+
+function kPMClient:OnSetGameEnd(p_WinnerTeamId)
+    local isPlayerWinner = false
+
+    if p_WinnerTeamId == nil then
+        WebUI:ExecuteJS('SetGameEnd('.. tostring(isPlayerWinner) .. ', "draw");')
+    end
+
+    local l_Player = PlayerManager:GetLocalPlayer()
+    if l_Player.teamId == p_WinnerTeamId then
+        isPlayerWinner = true
+    end
+    
+    if p_WinnerTeamId == self.m_AttackersTeamId then
+        WebUI:ExecuteJS('SetGameEnd('.. tostring(isPlayerWinner) .. ', "attackers");')
+    else
+        WebUI:ExecuteJS('SetGameEnd('.. tostring(isPlayerWinner) .. ', "defenders");')
+    end
 end
 
 function kPMClient:OnCleanup(p_EntityType)
     if p_EntityType == nil then
         return
     end
-
-    print('Cleaning up: ' ..p_EntityType)
-
     local l_Entities = {}
 
     local l_Iterator = EntityManager:GetIterator(p_EntityType)
@@ -459,7 +582,6 @@ function kPMClient:OnCleanup(p_EntityType)
 
     for _, l_Entity in pairs(l_Entities) do
         if l_Entity ~= nil then
-            print('Destroying: ' ..p_EntityType)
             l_Entity:Destroy()
         end
     end

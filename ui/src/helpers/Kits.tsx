@@ -5,23 +5,9 @@ export var Kits: any = [
         Name: "Assault",
         Weapons: {
             Primary: {
+                U_M16A4: Weapons.U_M16A4,
                 U_AK74M: Weapons.U_AK74M,
                 U_G36C: Weapons.U_G36C,
-                /*U_M416: Weapons.U_M416,
-                U_G36C: Weapons.U_G36C,
-
-                U_M416: {
-                    Key: "U_M416",
-                    Name: "M416",
-                    Image: "fb://UI/Art/Persistence/Weapons/m416",
-                    Vext: "Weapons/M416/U_M416",
-                },
-                U_G36C: {
-                    Key: "U_G36C",
-                    Name: "G36C",
-                    Image: "fb://UI/Art/Persistence/Weapons/g36c",
-                    Vext: "Weapons/G36C/U_G36C",
-                },*/
             },
             Secondary: {
                 U_M9: Weapons.U_M9,
@@ -34,7 +20,7 @@ export var Kits: any = [
             Lethal: {
                 U_M67: Weapons.U_M67,
             },
-            defaultPrimary: Weapons.U_AK74M.Key,
+            defaultPrimary: Weapons.U_M16A4.Key,
             defaultSecondary: Weapons.U_Taurus44.Key,
             defaultTactical: Weapons.U_Ammobag.Key,
             defaultLethal: Weapons.U_M67.Key,
@@ -52,8 +38,8 @@ export var Kits: any = [
                 U_Taurus44: Weapons.U_Taurus44,
             },
             Tactical: {
-                U_C4: Weapons.U_C4,
                 U_Medkit: Weapons.U_Medkit,
+                U_UGS: Weapons.U_UGS,
             },
             Lethal: {
                 U_M67: Weapons.U_M67,
@@ -76,14 +62,14 @@ export var Kits: any = [
             },
             Tactical: {
                 U_C4: Weapons.U_C4,
-                U_Medkit: Weapons.U_Medkit,
+                U_Claymore: Weapons.U_Claymore,
             },
             Lethal: {
                 U_M67: Weapons.U_M67,
             },
             defaultPrimary: Weapons.U_SPAS12.Key,
             defaultSecondary: Weapons.U_Taurus44.Key,
-            defaultTactical: Weapons.U_Medkit.Key,
+            defaultTactical: Weapons.U_C4.Key,
             defaultLethal: Weapons.U_M67.Key,
         },
     },
@@ -98,15 +84,14 @@ export var Kits: any = [
                 U_Taurus44: Weapons.U_Taurus44,
             },
             Tactical: {
-                U_C4: Weapons.U_C4,
-                U_Medkit: Weapons.U_Medkit,
+                U_MAV: Weapons.U_MAV,
             },
             Lethal: {
                 U_M67: Weapons.U_M67,
             },
             defaultPrimary: Weapons.U_M98B.Key,
             defaultSecondary: Weapons.U_Taurus44.Key,
-            defaultTactical: Weapons.U_Medkit.Key,
+            defaultTactical: Weapons.U_MAV.Key,
             defaultLethal: Weapons.U_M67.Key,
         },
     },

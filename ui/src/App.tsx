@@ -3,20 +3,33 @@ import React, { useState } from "react";
 import Header from "./Header";
 import Scoreboard from "./Scoreboard";
 
+import RoundEndInfoBox from "./components/RoundEndInfoBox";
+
 import TeamsScene from "./scenes/TeamsScene";
 import WarmupScene from "./scenes/WarmupScene";
-import EndgameScene from "./scenes/EndgameScene";
 import KnifeRoundScene from "./scenes/KnifeRoundScene";
 import LoadoutScene from "./scenes/LoadoutScene";
 
 import { GameStates } from './helpers/GameStates';
 import { Teams } from "./helpers/Teams";
-import { Players } from "./helpers/Player";
+import { Player, Players } from "./helpers/Player";
+
 
 import './Animations.scss';
 import './Global.scss';
+import GameEndInfoBox from "./components/GameEndInfoBox";
 
 const App: React.FC = () => {
+    /*
+    * Debug
+    */
+    let debugMode: boolean = false;
+    if (!navigator.userAgent.includes('VeniceUnleashed')) {
+        if (window.location.ancestorOrigins === undefined || window.location.ancestorOrigins[0] !== 'webui://main') {
+            debugMode = true;
+        }
+    }
+
     /*
     * Local States
     */
@@ -35,13 +48,21 @@ const App: React.FC = () => {
     */
     const [showHud, setShowHud] = useState<boolean>(false);
 
+    const [round, setRound] = useState<number>(0);
     const [roundWon, setRoundWon] = useState<boolean>(false);
     const [winningTeam, setWinningTeam] = useState<Teams>(Teams.Attackers);
     const [teamAttackersScore, setTeamAttackersScore] = useState<number>(0);
     const [teamDefendersScore, setTeamDefendersScore] = useState<number>(0);
 
+    window.UpdateHeader = function (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) {
+        setTeamAttackersScore(p_AttackerPoints);
+        setTeamDefendersScore(p_DefenderPoints);
+        setRound(p_Rounds);
+    }
+
     const [showTeamsPage, setShowTeamsPage] = useState<boolean>(false);
     const [selectedTeam, setSelectedTeam] = useState<Teams>(Teams.None);
+    const [showScoreboard, setShowScoreboard] = useState<boolean>(false);
 
     const setTeam = (team: Teams) => {
         setShowTeamsPage(false);
@@ -49,9 +70,13 @@ const App: React.FC = () => {
         setShowLoadoutPage(true);
     }
 
-    window.OpenCloseTeamMenu = function () {
+    window.OpenCloseTeamMenu = function (forceOpen?: boolean) {
         if (showLoadoutPage) {
             setShowLoadoutPage(false);
+        }
+
+        if (showScoreboard) {
+            setShowScoreboard(false);
         }
 
         if (!showTeamsPage) {
@@ -62,7 +87,11 @@ const App: React.FC = () => {
             WebUI.Call('ResetMouse');
         }
 
-        setShowTeamsPage(prevState => !prevState);
+        if(forceOpen) {
+            setShowTeamsPage(true);
+        } else {
+            setShowTeamsPage(prevState => !prevState);
+        }
     }
 
     const [showLoadoutPage, setShowLoadoutPage] = useState<boolean>(false);
@@ -70,6 +99,10 @@ const App: React.FC = () => {
     window.OpenCloseLoadoutMenu = function () {
         if (showTeamsPage) {
             setShowTeamsPage(false);
+        }
+
+        if (showScoreboard) {
+            setShowScoreboard(false);
         }
 
         if (!showLoadoutPage) {
@@ -83,18 +116,36 @@ const App: React.FC = () => {
         setShowLoadoutPage(prevState => !prevState);
     }
 
-    window.UpdateRoundEndStatus = function (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) {
-        setRoundWon(p_RoundWon);
-        setWinningTeam(p_WinningTeam);
-        setTeamAttackersScore(p_Team1Score);
-        setTeamDefendersScore(p_Team2Score);
+
+    const [showRoundEndInfoBox, setShowRoundEndInfoBox] = useState<boolean>(false);
+
+    window.ShowHideRoundEndInfoBox = function (open: boolean) {
+        setShowRoundEndInfoBox(open);
     }
 
-    const [showScoreboard, setShowScoreboard] = useState<boolean>(false);
+    window.UpdateRoundEndInfoBox = function (p_RoundWon: boolean, p_WinningTeam: string) {
+        setRoundWon(p_RoundWon);
+        if(p_WinningTeam === 'attackers') {
+            setWinningTeam(Teams.Attackers);
+        } else {
+            setWinningTeam(Teams.Defenders);
+        }
+    }
+
+    const [gameWon, setGameWon] = useState<boolean|null>(null);
+    const [gameWinningTeam, setGameWinningTeam] = useState<Teams|null>(null);
+    window.SetGameEnd = function (p_GameWon: boolean, p_WinningTeam: string) {
+        setGameWon(p_GameWon);
+        if(p_WinningTeam === 'attackers') {
+            setGameWinningTeam(Teams.Attackers);
+        } else if(p_WinningTeam === 'defenders') {
+            setGameWinningTeam(Teams.Defenders);
+        }
+    }
     
-    window.OpenCloseScoreboard = function () {
+    window.OpenCloseScoreboard = function (open: boolean) {
         if (!showTeamsPage && !showLoadoutPage) {
-            setShowScoreboard(prevState => !prevState);
+            setShowScoreboard(open);
         }
     }
 
@@ -103,146 +154,28 @@ const App: React.FC = () => {
         [Teams.Defenders]: [],
     });
 
-    const SetDummyPlayers = () => {
+    const [clientPlayer, setClientPlayer] = useState<Player>({
+        id: 0,
+        name: '',
+        ping: 0,
+        kill: 0,
+        death: 0,
+        isDead: false,
+        isReady: false,
+        team: Teams.None,
+    });
+
+    window.UpdatePlayers = function (p_Players: any, p_ClientPlayer: any) {
+        setClientPlayer(p_ClientPlayer);
         setPlayers({
-            [Teams.Attackers]: [
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Attacker',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-            ],
-            [Teams.Defenders]: [
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: true,
-                },
-                {
-                    name: 'Defender',
-                    ping: 31,
-                    kill: 10,
-                    death: 10,
-                    isDead: false,
-                },
-            ],
+            [Teams.Attackers]: p_Players["attackers"],
+            [Teams.Defenders]: p_Players["defenders"],
         });
     }
 
-    window.UpdatePlayers = function (p_Players: any) {
-        setPlayers({
-            [Teams.Attackers]: p_Players[0],
-            [Teams.Defenders]: p_Players[1],
-        });
+    const [rupProgress, setRupProgress] = useState<number>(0);
+    window.RupInteractProgress = function(m_RupHeldTime: number, MaxReadyUpTime: number) {
+        setRupProgress(Math.round(m_RupHeldTime / MaxReadyUpTime * 100));
     }
 
     const GameStatesPage = () => {
@@ -253,31 +186,41 @@ const App: React.FC = () => {
 
             case GameStates.WarmupToKnife:
             case GameStates.Warmup:
-                return <WarmupScene />;
+                return <WarmupScene rupProgress={rupProgress} players={players} clientPlayer={clientPlayer} />;
 
             case GameStates.KnifeRound:
                 return <KnifeRoundScene />;
 
-            case GameStates.EndGame:
+            /*case GameStates.EndGame:
                 return <EndgameScene
                     roundWon={roundWon}
                     winningTeam={winningTeam}
                     teamAttackersScore={teamAttackersScore}
                     teamDefendersScore={teamDefendersScore}
-                />;
+                />;*/
         }
     }
 
     return (
         <div className="App">
-
-            {/* TODO: Delete me */}
+            
+            {debugMode &&
+                <style dangerouslySetInnerHTML={{__html: `
+                    #debug {
+                        display: block !important;
+                    }
+                `}} />
+            }
+            
             <div id="debug" className="global">
                 <button onClick={() => setScene(GameStates.Warmup)}>Warmup</button>
-                <button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>
+                {/*<button onClick={() => setScene(GameStates.EndGame)}>EndGame</button>*/}
+                <button onClick={() => setScene(GameStates.Strat)}>Strat</button>
                 <button onClick={() => setShowHud(prevState => !prevState)}>ShowHeader On / Off</button>
                 <button onClick={() => setShowScoreboard(prevState => !prevState)}>Scoreboard On / Off</button>
-                <button onClick={() => SetDummyPlayers()}>Dummy players</button>
+                <button onClick={() => setShowRoundEndInfoBox(prevState => !prevState)}>RoundEndInfo On / Off</button>
+                <button onClick={() => setGameWon(true)}>setGameWon</button>
+                <button onClick={() => setGameWinningTeam(Teams.Attackers)}>Attackers won the game</button>
                 <br />
                 <button onClick={() => setRoundWon(true)}>Win</button>
                 <button onClick={() => setRoundWon(false)}>Lose</button>
@@ -295,7 +238,7 @@ const App: React.FC = () => {
                     teamDefendersScore={teamDefendersScore}
                     teamAttackersClan=""
                     teamDefendersClan=""
-                    round="0"
+                    round={round}
                 />
                 <GameStatesPage />
                 <TeamsScene
@@ -307,7 +250,31 @@ const App: React.FC = () => {
                     show={showLoadoutPage}
                     setShowLoadoutPage={(show) => setShowLoadoutPage(show)}
                 />
-                <Scoreboard showScoreboard={showScoreboard} teamAttackersScore={teamAttackersScore} teamDefendersScore={teamDefendersScore} players={players} />
+                <Scoreboard 
+                    showScoreboard={showScoreboard}
+                    teamAttackersScore={teamAttackersScore}
+                    teamDefendersScore={teamDefendersScore}
+                    players={players}
+                    gameState={scene}
+                />
+
+                {gameWon !== null 
+                ?
+                    <GameEndInfoBox
+                        gameWon={gameWon}
+                        winningTeam={gameWinningTeam}
+                        />
+                :
+                    <>
+                        {showRoundEndInfoBox &&
+                            <RoundEndInfoBox 
+                                roundWon={roundWon}
+                                winningTeam={winningTeam}
+                                afterDisaper={() => setShowRoundEndInfoBox(false)}
+                                />
+                        }
+                    </>
+                }
             </div>
         </div>
     );
@@ -318,10 +285,15 @@ export default App;
 declare global {
     interface Window {
         ChangeState: (p_GameState: GameStates) => void;
-        UpdateRoundEndStatus: (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) => void;
+        //UpdateRoundEndStatus: (p_RoundWon: boolean, p_WinningTeam: Teams, p_Team1Score: number, p_Team2Score: number) => void;
         OpenCloseLoadoutMenu: () => void;
-        OpenCloseTeamMenu: () => void;
-        UpdatePlayers: (p_Players: any) => void; //TODO: fix any
-        OpenCloseScoreboard: () => void;
+        OpenCloseTeamMenu: (forceOpen?: boolean) => void;
+        UpdatePlayers: (p_Players: any, p_ClientPlayer: any) => void;
+        OpenCloseScoreboard: (open: boolean) => void;
+        RupInteractProgress: (m_RupHeldTime: number, MaxReadyUpTime: number) => void
+        UpdateHeader: (p_AttackerPoints: number, p_DefenderPoints: number, p_Rounds: number) => void;
+        ShowHideRoundEndInfoBox: (open: boolean) => void;
+        UpdateRoundEndInfoBox: (p_RoundWon: boolean, p_WinningTeam: string) => void;
+        SetGameEnd: (p_GameWon: boolean, p_WinningTeam: string) => void;
     }
 }

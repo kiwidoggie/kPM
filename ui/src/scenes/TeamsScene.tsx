@@ -29,7 +29,7 @@ const TeamsScene: React.FC<Props> = ({ show, selectedTeam, setSelectedTeam }) =>
                         <button className={"btn border-btn primary"} onClick={() => setTeam(Teams.Attackers)}>Attackers</button>
                         <button className={"btn border-btn secondary"} onClick={() => setTeam(Teams.Defenders)}>Defenders</button>
                         <hr/>
-                        <button className={"btn border-btn"} onClick={() => setTeam(Teams.Defenders)}>Spectator</button>
+                        <button className={"btn border-btn disabled"}>Spectator</button>
                     </div>
                 </div>
             }
